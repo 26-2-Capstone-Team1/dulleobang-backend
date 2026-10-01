@@ -1,0 +1,2816 @@
+[
+  {
+    "method": "post",
+    "path": "/auth/signup",
+    "oid": "signup",
+    "title": "회원 가입",
+    "tag": "인증",
+    "role": "비로그인",
+    "desc": "이메일 중복 409 EMAIL_ALREADY_EXISTS. 클라이언트가 role을 지정하면 422. 가입만 수행하며 토큰은 로그인으로 발급.",
+    "req": "SignupRequest",
+    "res": "User",
+    "status": 201,
+    "params": [],
+    "errors": [
+      400,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/auth/login",
+    "oid": "login",
+    "title": "로그인",
+    "tag": "인증",
+    "role": "비로그인",
+    "desc": "존재하지 않는 이메일과 틀린 비밀번호 모두 401 INVALID_CREDENTIALS. 세션별 토큰 발급.",
+    "req": "LoginRequest",
+    "res": "TokenPair",
+    "status": 200,
+    "params": [],
+    "errors": [
+      400,
+      401,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/auth/refresh",
+    "oid": "refreshToken",
+    "title": "토큰 갱신",
+    "tag": "인증",
+    "role": "유효 refresh token",
+    "desc": "동일 키/본문 재전송은 최초 갱신 응답 재생. 다른 키로 폐기된 토큰 재사용 시 401 TOKEN_REUSED 및 해당 토큰 계열 폐기. 만료 토큰은 401.",
+    "req": "RefreshRequest",
+    "res": "TokenPair",
+    "status": 200,
+    "params": [
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/auth/logout",
+    "oid": "logout",
+    "title": "로그아웃",
+    "tag": "인증",
+    "role": "refresh token 보유자",
+    "desc": "해당 토큰 계열의 refresh와 access 세션을 즉시 폐기. 이미 폐기/없는 토큰에도 204로 멱등. 다른 세션은 유지.",
+    "req": "RefreshRequest",
+    "res": null,
+    "status": 204,
+    "params": [],
+    "errors": [
+      400,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/users/me",
+    "oid": "getMe",
+    "title": "내 정보",
+    "tag": "인증",
+    "role": "로그인 사용자",
+    "desc": "현재 계정 정보 조회.",
+    "req": null,
+    "res": "User",
+    "status": 200,
+    "params": [],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "patch",
+    "path": "/users/me",
+    "oid": "updateMe",
+    "title": "내 이름·연락처·공개 동의 수정",
+    "tag": "인증",
+    "role": "본인",
+    "desc": "원자적으로 수정하고 version 증가.",
+    "req": "UserPatch",
+    "res": "User",
+    "status": 200,
+    "params": [
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      412,
+      413,
+      415,
+      422,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/listings",
+    "oid": "searchListings",
+    "title": "매물 조건 검색",
+    "tag": "매물",
+    "role": "로그인 사용자",
+    "desc": "최신순/기존 필터 유지, 추천 API 없음. q 주소 단어별 AND 부분일치. roomType 반복 OR. 지도 네 경계 모두 필요(누락400), 경계포함,역전422. 일반limit50,지도limit200. 주소에 없는 지역명을 자동 지오코딩하지 않음.",
+    "req": null,
+    "res": "ListingPage",
+    "status": 200,
+    "params": [
+      {
+        "name": "regionCode",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9]{10}$"
+        },
+        "description": ""
+      },
+      {
+        "name": "leaseType",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "MONTHLY",
+            "JEONSE"
+          ],
+          "description": ""
+        },
+        "description": ""
+      },
+      {
+        "name": "roomType",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ONE_ROOM",
+              "TWO_ROOM",
+              "THREE_ROOM",
+              "OFFICETEL"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "description": ""
+      },
+      {
+        "name": "minDeposit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000,
+          "description": "KRW 원 단위. 만원 단위가 아닙니다."
+        },
+        "description": "KRW 원 단위. 만원 단위가 아닙니다."
+      },
+      {
+        "name": "maxDeposit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000,
+          "description": "KRW 원 단위. 만원 단위가 아닙니다."
+        },
+        "description": "KRW 원 단위. 만원 단위가 아닙니다."
+      },
+      {
+        "name": "minMonthlyRent",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000,
+          "description": "KRW 원 단위. 만원 단위가 아닙니다."
+        },
+        "description": "KRW 원 단위. 만원 단위가 아닙니다."
+      },
+      {
+        "name": "maxMonthlyRent",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000,
+          "description": "KRW 원 단위. 만원 단위가 아닙니다."
+        },
+        "description": "KRW 원 단위. 만원 단위가 아닙니다."
+      },
+      {
+        "name": "minAreaM2",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number",
+          "description": "",
+          "minimum": 0.1,
+          "maximum": 10000
+        },
+        "description": ""
+      },
+      {
+        "name": "maxAreaM2",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number",
+          "description": "",
+          "minimum": 0.1,
+          "maximum": 10000
+        },
+        "description": ""
+      },
+      {
+        "name": "rentalOptions",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "AIR_CONDITIONER",
+              "REFRIGERATOR",
+              "WASHING_MACHINE",
+              "INDUCTION",
+              "GAS_STOVE",
+              "BED",
+              "DESK",
+              "WARDROBE",
+              "MICROWAVE",
+              "TV",
+              "PARKING",
+              "PET_ALLOWED",
+              "ELEVATOR"
+            ],
+            "description": ""
+          },
+          "minItems": 0,
+          "maxItems": 13,
+          "description": "",
+          "uniqueItems": true
+        },
+        "description": ""
+      },
+      {
+        "name": "hasSpace",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "description": ""
+        },
+        "description": ""
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "LATEST",
+            "DEPOSIT_ASC",
+            "MONTHLY_RENT_ASC",
+            "AREA_DESC"
+          ],
+          "description": ""
+        },
+        "description": ""
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        },
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+        },
+        "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+      },
+      {
+        "name": "q",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "minLat",
+        "schema": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "maxLat",
+        "schema": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "minLng",
+        "schema": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "maxLng",
+        "schema": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/listings",
+    "oid": "createListing",
+    "title": "매물 생성",
+    "tag": "매물",
+    "role": "로그인 사용자",
+    "desc": "본인 매물. 소유 중개사 인증 없이 등록·관리 가능.",
+    "req": "ListingCreate",
+    "res": "Listing",
+    "status": 201,
+    "params": [
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/users/me/listings",
+    "oid": "getMyListings",
+    "title": "내 매물 목록",
+    "tag": "매물",
+    "role": "로그인 사용자",
+    "desc": "본인 매물. 소유 중개사 인증 없이 등록·관리 가능.",
+    "req": null,
+    "res": "ListingPage",
+    "status": 200,
+    "params": [
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "DRAFT",
+            "PUBLISHED",
+            "ARCHIVED"
+          ],
+          "description": ""
+        },
+        "description": ""
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+        },
+        "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/listings/{listingId}",
+    "oid": "getListing",
+    "title": "매물 상세",
+    "tag": "매물",
+    "role": "PUBLISHED 또는 매물 소유자",
+    "desc": "비공개/보관 매물은 소유자 외 404. 원본 촬영 자료나 세입자 개인정보는 포함하지 않음.",
+    "req": null,
+    "res": "Listing",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "patch",
+    "path": "/listings/{listingId}",
+    "oid": "updateListing",
+    "title": "매물 정보 수정",
+    "tag": "매물",
+    "role": "매물 소유자",
+    "desc": "ARCHIVED는 409. 사진 배열은 전체 교체, 첫 파일이 thumbnail. PUBLISHED의 사진을 0장으로 만들면 409. 다른 매물 업로드 파일은 404.",
+    "req": "ListingPatch",
+    "res": "Listing",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      412,
+      413,
+      415,
+      422,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "put",
+    "path": "/listings/{listingId}/publication",
+    "oid": "setPublication",
+    "title": "매물 공개 상태 변경",
+    "tag": "매물",
+    "role": "매물 소유자",
+    "desc": "DRAFT↔PUBLISHED, 둘 다 ARCHIVED로 전환 가능. ARCHIVED→DRAFT만 허용. 게시에는 사진, 현재 READY 공간 필요(409 PUBLISH_REQUIREMENTS_NOT_MET). 진행 중 작업이 있으면 ARCHIVED 전환 409.",
+    "req": "PublicationRequest",
+    "res": "Listing",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      412,
+      413,
+      415,
+      422,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "delete",
+    "path": "/listings/{listingId}",
+    "oid": "deleteListing",
+    "title": "매물 삭제",
+    "tag": "매물",
+    "role": "매물 소유자",
+    "desc": "soft delete. 활성 작업은 원자적으로 CANCELED. 조회/첨부 에셋 접근 즉시 차단하고 하위 파생 공간/배치도 비노출. 삭제된 동일 ID 재요청은 인증 소유자에 한해 204; 존재 없는 ID는 404.",
+    "req": null,
+    "res": null,
+    "status": 204,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      412,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/upload-sessions",
+    "oid": "createUploadSession",
+    "title": "업로드 세션 생성",
+    "tag": "파일·촬영",
+    "role": "대상 소유자",
+    "desc": "매물/가구 소유자 또는 본인 USER. 실내 IMAGE30~1000+manifest1, 선택 PNG16 깊이·PNG8 신뢰도 각각0 또는 이미지수, RoomPlan JSON각0~1. 사진1~20, 인증사진1. 최대파일3003,세션5GiB. 서명PUT은binary원문.",
+    "req": "UploadSessionCreate",
+    "res": "UploadSessionCreated",
+    "status": 201,
+    "params": [
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/upload-sessions/{uploadSessionId}",
+    "oid": "getUploadSession",
+    "title": "업로드 세션 조회",
+    "tag": "파일·촬영",
+    "role": "세션 소유자",
+    "desc": "OPEN/VERIFIED/CONSUMED/EXPIRED 메타데이터 조회. 만료 이력은 7일 유지.",
+    "req": null,
+    "res": "UploadSession",
+    "status": 200,
+    "params": [
+      {
+        "name": "uploadSessionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/upload-sessions/{uploadSessionId}/upload-urls",
+    "oid": "renewUploadUrls",
+    "title": "업로드 URL 재발급",
+    "tag": "파일·촬영",
+    "role": "세션 소유자",
+    "desc": "OPEN만 허용. PUT에 실패한 파일만 다시 요청. 409 SESSION_NOT_OPEN, 만료는 410 UPLOAD_SESSION_EXPIRED. 요청당 최대 3003개.",
+    "req": "RenewUploadsRequest",
+    "res": "UploadGrants",
+    "status": 200,
+    "params": [
+      {
+        "name": "uploadSessionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      410,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/upload-sessions/{uploadSessionId}/complete",
+    "oid": "verifyUploadSession",
+    "title": "업로드 검증 완료",
+    "tag": "파일·촬영",
+    "role": "세션 소유자",
+    "desc": "실제바이트·체크섬·RGB·manifest·PNG16깊이·confidence0/1/2·파일참조·RoomPlan·증빙을 검증. 성공 VERIFIED, 이후PUT불변. 실패는전체롤백.",
+    "req": null,
+    "res": "UploadSession",
+    "status": 200,
+    "params": [
+      {
+        "name": "uploadSessionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      410,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/assets/{fileId}/download",
+    "oid": "getAssetDownload",
+    "title": "파일 다운로드 URL",
+    "tag": "파일·촬영",
+    "role": "파일 가시성에 맞는 사용자",
+    "desc": "원본/가구/개인 배치 파생 파일은 소유자만. 공간과 매물 사진은 해당 매물 가시성 적용. URL 15분 유효, immutable object version 지정. 404로 존재 은닉.",
+    "req": null,
+    "res": "DownloadGrant",
+    "status": 200,
+    "params": [
+      {
+        "name": "fileId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/listings/{listingId}/captures",
+    "oid": "submitRoomCapture",
+    "title": "실내 촬영 제출",
+    "tag": "파일·촬영",
+    "role": "매물 소유자",
+    "desc": "ROOM_CAPTURE VERIFIED 세션만 허용. 만료 세션은 410. target 당 활성 재구성 1개. 409 ACTIVE_JOB_EXISTS. 이전 완성 공간은 유지하며 새 결과를 검증 후 새 버전으로 교체.",
+    "req": "CaptureSubmit",
+    "res": "CaptureAccepted",
+    "status": 202,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      410,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/furniture/{furnitureId}/captures",
+    "oid": "submitFurnitureCapture",
+    "title": "가구 촬영 제출",
+    "tag": "파일·촬영",
+    "role": "소유 TENANT",
+    "desc": "FURNITURE_CAPTURE VERIFIED 세션만 허용. 만료 세션은 410. target 당 활성 재구성 1개. 이전 모델 유지, 새 결과 완료 후 current pointer만 변경.",
+    "req": "CaptureSubmit",
+    "res": "CaptureAccepted",
+    "status": 202,
+    "params": [
+      {
+        "name": "furnitureId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      410,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/captures/{captureId}",
+    "oid": "getCapture",
+    "title": "촬영 묶음 조회",
+    "tag": "파일·촬영",
+    "role": "캡처 소유자",
+    "desc": "검증 완료된 파일 참조 및 최근 작업을 반환. 임차인이 매물을 볼 수 있어도 원본 촬영 자료는 볼 수 없음.",
+    "req": null,
+    "res": "Capture",
+    "status": 200,
+    "params": [
+      {
+        "name": "captureId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/ai-jobs/{jobId}",
+    "oid": "getJob",
+    "title": "AI 작업 상태",
+    "tag": "AI 작업",
+    "role": "작업 요청자",
+    "desc": "QUEUED/RUNNING/RETRY_WAIT는 3→5→10초 백오프 권장. 완료 응답 result를 이용해 최종 리소스 조회. polling 자체는 항상 200.",
+    "req": null,
+    "res": "Job",
+    "status": 200,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/ai-jobs/{jobId}/retries",
+    "oid": "retryJob",
+    "title": "실패 작업 수동 재시도",
+    "tag": "AI 작업",
+    "role": "작업 요청자",
+    "desc": "FAILED + error.retryable=true인 경우 새 jobId 생성. 같은 입력/대상/기준 버전 재사용. 그 외 409 JOB_NOT_RETRYABLE. 기존 target이 삭제/변경되어 실행 불가능하면 409. 입력이 만료되면 410 CAPTURE_EXPIRED.",
+    "req": null,
+    "res": "JobAccepted",
+    "status": 202,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      410,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/ai-jobs/{jobId}/cancel",
+    "oid": "cancelJob",
+    "title": "AI 작업 취소",
+    "tag": "AI 작업",
+    "role": "작업 요청자",
+    "desc": "QUEUED/RUNNING/RETRY_WAIT를 즉시 CANCELED로 커밋. 워커 중단은 협력적이며 이후 결과는 거절. 이미 CANCELED이면 200, COMPLETED/FAILED면 409. 취소가 먼저 커밋되면 결과 미반영.",
+    "req": null,
+    "res": "Job",
+    "status": 200,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/listings/{listingId}/space",
+    "oid": "getSpace",
+    "title": "매물 3D 공간",
+    "tag": "3D 공간",
+    "role": "PUBLISHED 또는 매물 소유자",
+    "desc": "spaceVersion 미지정은 최신 완성 버전. 준비된 버전이 전혀 없으면 409 SPACE_NOT_READY; 지정 버전 없으면 404. 재촬영 중에도 이전 완성 버전을 반환.",
+    "req": null,
+    "res": "Space",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "spaceVersion",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": ""
+        },
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/listings/{listingId}/objects",
+    "oid": "getObjects",
+    "title": "인식 객체 목록",
+    "tag": "3D 공간",
+    "role": "PUBLISHED 또는 매물 소유자",
+    "desc": "spaceVersion 미지정은 현재 버전. 반환 ETag는 매물 버전과 다른 객체 집합 version.",
+    "req": null,
+    "res": "ObjectCollection",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "spaceVersion",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": ""
+        },
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "patch",
+    "path": "/listings/{listingId}/objects",
+    "oid": "classifyObjects",
+    "title": "객체 소유 유형 분류",
+    "tag": "3D 공간",
+    "role": "매물 소유자",
+    "desc": "현재 공간 버전만 수정. 이전 공간이면 409 SPACE_VERSION_STALE. 하나라도 잘못되면 전체 롤백. 기존 room-state의 분류 스냅샷은 유지.",
+    "req": "ObjectsPatch",
+    "res": "ObjectCollection",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      412,
+      413,
+      415,
+      422,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/listings/{listingId}/room-states",
+    "oid": "createRoomState",
+    "title": "가구 제거 상태 생성",
+    "tag": "입주 상태",
+    "role": "PUBLISHED 매물의 TENANT 또는 매물 소유자",
+    "desc": "PERSONAL이고 removable=true인 객체만 제거. UNKNOWN/RENTAL_OPTION/고정 구조물은 422 OBJECT_NOT_REMOVABLE. 요청자는 자신의 비공개 파생 공간을 생성하며 원본을 변경하지 않음. 최신 space/objects 버전 일치 필요.",
+    "req": "RoomStateCreate",
+    "res": "RoomStateAccepted",
+    "status": 202,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/listings/{listingId}/room-states",
+    "oid": "getRoomStates",
+    "title": "내 입주 상태 목록",
+    "tag": "입주 상태",
+    "role": "본인",
+    "desc": "본인이 만든 상태만 최신 생성순 반환. 매물 접근 권한도 함께 검사.",
+    "req": null,
+    "res": "RoomStatePage",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+        },
+        "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/room-states/{roomStateId}",
+    "oid": "getRoomState",
+    "title": "입주 상태 상세",
+    "tag": "입주 상태",
+    "role": "상태 생성자",
+    "desc": "PROCESSING/FAILED/CANCELED도 200 메타데이터, bundle=null. READY만 bundle 존재. listing 접근 권한을 함께 검사.",
+    "req": null,
+    "res": "RoomState",
+    "status": 200,
+    "params": [
+      {
+        "name": "roomStateId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "delete",
+    "path": "/room-states/{roomStateId}",
+    "oid": "deleteRoomState",
+    "title": "입주 상태 삭제",
+    "tag": "입주 상태",
+    "role": "상태 생성자",
+    "desc": "저장 배치에서 참조하면 409 RESOURCE_IN_USE. 활성 작업은 함께 취소. 동일 사용자 삭제 재호출 204.",
+    "req": null,
+    "res": null,
+    "status": 204,
+    "params": [
+      {
+        "name": "roomStateId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/furniture",
+    "oid": "createFurniture",
+    "title": "내 가구 등록",
+    "tag": "가구",
+    "role": "TENANT",
+    "desc": "개인 가구 DRAFT 메타데이터 생성.",
+    "req": "FurnitureCreate",
+    "res": "Furniture",
+    "status": 201,
+    "params": [
+      {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/users/me/furniture",
+    "oid": "getMyFurniture",
+    "title": "내 가구 목록",
+    "tag": "가구",
+    "role": "TENANT",
+    "desc": "본인 가구만 최신 생성순. status 생략 시 전체, READY는 현재 모델이 있는 가구.",
+    "req": null,
+    "res": "FurniturePage",
+    "status": 200,
+    "params": [
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "DRAFT",
+            "PROCESSING",
+            "READY",
+            "FAILED"
+          ],
+          "description": ""
+        },
+        "description": ""
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+        },
+        "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/furniture/{furnitureId}",
+    "oid": "getFurniture",
+    "title": "가구 상세·모델 조회",
+    "tag": "가구",
+    "role": "가구 소유자",
+    "desc": "modelVersion 생략은 현재 모델. 지정 시 해당 불변 모델 버전을 반환하며 ETag는 생략. 다른 사람 가구는 404. 버전 미존재는 404.",
+    "req": null,
+    "res": "Furniture",
+    "status": 200,
+    "params": [
+      {
+        "name": "furnitureId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "modelVersion",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647,
+          "description": ""
+        },
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "patch",
+    "path": "/furniture/{furnitureId}",
+    "oid": "updateFurniture",
+    "title": "가구 정보 수정",
+    "tag": "가구",
+    "role": "가구 소유자",
+    "desc": "버전 검사 후 이름/카테고리 수정. 치수는 3D 아티팩트와 일관되게 유지.",
+    "req": "FurniturePatch",
+    "res": "Furniture",
+    "status": 200,
+    "params": [
+      {
+        "name": "furnitureId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      412,
+      413,
+      415,
+      422,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "delete",
+    "path": "/furniture/{furnitureId}",
+    "oid": "deleteFurniture",
+    "title": "가구 삭제",
+    "tag": "가구",
+    "role": "가구 소유자",
+    "desc": "어느 본인 배치든 해당 가구를 참조하면 409 RESOURCE_IN_USE. 활성 작업 취소 및 soft delete. 동일 사용자 삭제 재호출 204.",
+    "req": null,
+    "res": null,
+    "status": 204,
+    "params": [
+      {
+        "name": "furnitureId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      412,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/listings/{listingId}/placements",
+    "oid": "getPlacements",
+    "title": "내 매물별 배치 조회",
+    "tag": "배치",
+    "role": "TENANT 본인",
+    "desc": "(userId,listingId)로 분리. 미저장은 404 PLACEMENT_NOT_FOUND. 타인의 배치 조회 불가. 예전 기준 공간이면 isStale=true.",
+    "req": null,
+    "res": "PlacementSet",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "put",
+    "path": "/listings/{listingId}/placements",
+    "oid": "savePlacements",
+    "title": "내 매물별 배치 전체 저장",
+    "tag": "배치",
+    "role": "TENANT 본인",
+    "desc": "기존 멱등 조건/ETag 유지. inputSha256 선택·서버 미검증. 충돌은 CLIENT_ONLY. 과거 버전은 isStale.",
+    "req": "PlacementPut",
+    "res": "PlacementSet",
+    "status": 200,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": ""
+      },
+      {
+        "name": "If-None-Match",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "*"
+          ],
+          "description": ""
+        },
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      412,
+      413,
+      415,
+      422,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": true,
+    "internal": false
+  },
+  {
+    "method": "delete",
+    "path": "/listings/{listingId}/placements",
+    "oid": "deletePlacements",
+    "title": "내 배치 삭제",
+    "tag": "배치",
+    "role": "TENANT 본인",
+    "desc": "본인 세트 삭제. 이미 없음은 204. 존재하면 If-Match로 경쟁 수정 방지.",
+    "req": null,
+    "res": null,
+    "status": 204,
+    "params": [
+      {
+        "name": "listingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"[1-9][0-9]*\"$"
+        },
+        "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      412,
+      428,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "get",
+    "path": "/users/me/placements",
+    "oid": "getMyPlacements",
+    "title": "저장 배치 목록·비교",
+    "tag": "배치",
+    "role": "TENANT 본인",
+    "desc": "최신 저장순. 공개 중인 매물만 반환. 동일 가구 ID를 기준으로 앱에서 나란히 비교하며 자동 배치 이관은 하지 않음.",
+    "req": null,
+    "res": "PlacementPage",
+    "status": 200,
+    "params": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+        },
+        "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false
+  },
+  {
+    "method": "post",
+    "path": "/internal/ai-jobs/{jobId}/claim",
+    "oid": "claimJob",
+    "title": "워커 작업 인수",
+    "tag": "내부 워커",
+    "role": "AI_WORKER 서비스",
+    "desc": "큐에 의해 전달된 QUEUED 또는 재시도 시각이 된 RETRY_WAIT만 원자 인수. lease 120초, attemptNo 증가. 중복/실행중/종료는 409. claim 응답 유실 시 실행하지 말고 lease 만료를 기다림.",
+    "req": "JobClaimRequest",
+    "res": "JobAssignment",
+    "status": 200,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": true
+  },
+  {
+    "method": "post",
+    "path": "/internal/ai-jobs/{jobId}/heartbeat",
+    "oid": "heartbeatJob",
+    "title": "워커 진행·lease 갱신",
+    "tag": "내부 워커",
+    "role": "현재 lease 소유 AI_WORKER",
+    "desc": "30초 주기, 120초 lease 갱신. 같은 attempt 내 progress 감소는 422. 취소/기한 만료/이전 attempt는 409 JOB_LEASE_LOST. 입력 URL 갱신 시 동일 객체 버전으로 재발급.",
+    "req": "JobHeartbeatRequest",
+    "res": "JobHeartbeat",
+    "status": 200,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "X-Job-Lease-Token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 256,
+          "description": ""
+        },
+        "description": "현재 attempt의 서버 발급 lease token. 일반 사용자 토큰으로 대체 불가."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": true
+  },
+  {
+    "method": "post",
+    "path": "/internal/ai-jobs/{jobId}/artifacts",
+    "oid": "createJobArtifacts",
+    "title": "워커 결과 업로드 등록",
+    "tag": "내부 워커",
+    "role": "현재 lease 소유 AI_WORKER",
+    "desc": "ROOM/REMOVAL은 SCENE,GEOMETRY,COLLISION 3개; FURNITURE는 MODEL,COLLISION 2개. 현재 job/attempt 전용 fileId와 PUT URL 발급. complete 시 실제 객체를 검증.",
+    "req": "ArtifactCreate",
+    "res": "UploadGrants",
+    "status": 200,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "X-Job-Lease-Token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 256,
+          "description": ""
+        },
+        "description": "현재 attempt의 서버 발급 lease token. 일반 사용자 토큰으로 대체 불가."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": true
+  },
+  {
+    "method": "post",
+    "path": "/internal/ai-jobs/{jobId}/complete",
+    "oid": "completeJob",
+    "title": "워커 작업 완료",
+    "tag": "내부 워커",
+    "role": "현재 lease 소유 AI_WORKER",
+    "desc": "현재 attempt 파일만 허용. 모든 파일 존재·해시·스키마·좌표·참조 검사 후 Job COMPLETED와 결과/current pointer를 단일 DB 트랜잭션으로 저장. 성공했던 같은 lease/body 재호출은 200, 다른 body/오래된 lease는 409.",
+    "req": "JobCompleteRequest",
+    "res": "Job",
+    "status": 200,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "X-Job-Lease-Token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 256,
+          "description": ""
+        },
+        "description": "현재 attempt의 서버 발급 lease token. 일반 사용자 토큰으로 대체 불가."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": true
+  },
+  {
+    "method": "post",
+    "path": "/internal/ai-jobs/{jobId}/fail",
+    "oid": "failJob",
+    "title": "워커 실패 보고",
+    "tag": "내부 워커",
+    "role": "현재 lease 소유 AI_WORKER",
+    "desc": "일시 장애는 최대 총 3 attempt 안에서 RETRY_WAIT, 영구 오류/횟수 소진은 FAILED. 같은 lease/body 중복 보고는 원 응답 재생. 종료 완료 또는 오래된 lease는 409.",
+    "req": "JobFailRequest",
+    "res": "Job",
+    "status": 200,
+    "params": [
+      {
+        "name": "jobId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+        },
+        "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+      },
+      {
+        "name": "X-Job-Lease-Token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 256,
+          "description": ""
+        },
+        "description": "현재 attempt의 서버 발급 lease token. 일반 사용자 토큰으로 대체 불가."
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": true
+  },
+  {
+    "oid": "loginKakao",
+    "method": "post",
+    "path": "/auth/oauth/kakao",
+    "title": "카카오 로그인",
+    "tag": "인증",
+    "role": "비로그인",
+    "desc": "카카오 토큰 정보의 app_id와 사용자 정보 id를 검증. 이메일 자동 연결 금지. INVALID_OAUTH_TOKEN401,제공자 장애503.",
+    "req": "KakaoLogin",
+    "res": "TokenPair",
+    "status": 200,
+    "params": [],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "loginGoogle",
+    "method": "post",
+    "path": "/auth/oauth/google",
+    "title": "구글 로그인",
+    "tag": "인증",
+    "role": "비로그인",
+    "desc": "공개키 서명,iss/aud/exp/sub 검증. 이메일 자동 연결 금지. 앱 client ID 설정 필요.",
+    "req": "GoogleLogin",
+    "res": "TokenPair",
+    "status": 200,
+    "params": [],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "getAgentProfile",
+    "method": "get",
+    "path": "/users/me/listing-agent-verification",
+    "title": "내 소유 중개사 인증 상태",
+    "tag": "소유 중개사 인증",
+    "role": "로그인 사용자",
+    "desc": "",
+    "req": null,
+    "res": "ListingAgentVerification",
+    "status": 200,
+    "params": [],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "applyAgentVerification",
+    "method": "post",
+    "path": "/users/me/listing-agent-verification",
+    "title": "소유 중개사 인증 신청",
+    "tag": "소유 중개사 인증",
+    "role": "로그인 사용자",
+    "desc": "USER 본인 LISTING_AGENT_DOCUMENT JPEG/PNG1장 업로드 완료 후 신청. 심사 중409 VERIFICATION_PENDING,반려 후 재신청.",
+    "req": "ListingAgentVerificationCreate",
+    "res": "ListingAgentVerification",
+    "status": 201,
+    "params": [
+      {
+        "name": "Idempotency-Key",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "header",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "saveScrap",
+    "method": "put",
+    "path": "/listings/{listingId}/scrap",
+    "title": "관심매물 저장",
+    "tag": "관심매물",
+    "role": "로그인 사용자",
+    "desc": "반복204,기존 savedAt 유지.",
+    "req": null,
+    "res": null,
+    "status": 204,
+    "params": [
+      {
+        "name": "listingId",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "path",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "deleteScrap",
+    "method": "delete",
+    "path": "/listings/{listingId}/scrap",
+    "title": "관심매물 해제",
+    "tag": "관심매물",
+    "role": "로그인 사용자",
+    "desc": "",
+    "req": null,
+    "res": null,
+    "status": 204,
+    "params": [
+      {
+        "name": "listingId",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "path",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "getScraps",
+    "method": "get",
+    "path": "/users/me/scraps",
+    "title": "내 관심매물 목록",
+    "tag": "관심매물",
+    "role": "로그인 사용자",
+    "desc": "최근 담은 순. 공개 중 매물만. 비공개 기록 유지.",
+    "req": null,
+    "res": "ListingPage",
+    "status": 200,
+    "params": [
+      {
+        "name": "limit",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "createListingReport",
+    "method": "post",
+    "path": "/listings/{listingId}/reports",
+    "title": "매물 신고",
+    "tag": "신고",
+    "role": "로그인 사용자",
+    "desc": "본인 매물 신고403. 동일 사용자·매물24h이내 다시 신고200기존ID. 같은 멱등키 재생은 최초 상태코드 유지.",
+    "req": "ListingReportCreate",
+    "res": "ListingReportReceipt",
+    "status": 201,
+    "params": [
+      {
+        "name": "listingId",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "path",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "Idempotency-Key",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "header",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": 200
+  },
+  {
+    "oid": "createChat",
+    "method": "post",
+    "path": "/chats",
+    "title": "문의 채팅 개설",
+    "tag": "채팅",
+    "role": "로그인 사용자",
+    "desc": "매물·문의자당 하나. 첫생성201,기존200. 소유자 자기매물409.",
+    "req": "ChatCreate",
+    "res": "Chat",
+    "status": 201,
+    "params": [
+      {
+        "name": "Idempotency-Key",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "header",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": 200
+  },
+  {
+    "oid": "getChats",
+    "method": "get",
+    "path": "/chats",
+    "title": "내 채팅 목록",
+    "tag": "채팅",
+    "role": "로그인 사용자",
+    "desc": "",
+    "req": null,
+    "res": "ChatPage",
+    "status": 200,
+    "params": [
+      {
+        "name": "limit",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "getChat",
+    "method": "get",
+    "path": "/chats/{chatId}",
+    "title": "채팅 상세",
+    "tag": "채팅",
+    "role": "로그인 사용자",
+    "desc": "",
+    "req": null,
+    "res": "Chat",
+    "status": 200,
+    "params": [
+      {
+        "name": "chatId",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "path",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "getChatMessages",
+    "method": "get",
+    "path": "/chats/{chatId}/messages",
+    "title": "채팅 메시지 목록",
+    "tag": "채팅",
+    "role": "로그인 사용자",
+    "desc": "최신부터. before는 동일방 메시지ID,배타적. page커서/필터 동일 유지. 폴링3~5초.",
+    "req": null,
+    "res": "MessagePage",
+    "status": 200,
+    "params": [
+      {
+        "name": "chatId",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "path",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "before",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "limit",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      },
+      {
+        "name": "cursor",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "in": "query",
+        "required": false,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "sendChatMessage",
+    "method": "post",
+    "path": "/chats/{chatId}/messages",
+    "title": "채팅 메시지 전송",
+    "tag": "채팅",
+    "role": "로그인 사용자",
+    "desc": "참여자만. 매물 삭제·보관·비공개면 읽기전용409. text1~1000.",
+    "req": "ChatMessageCreate",
+    "res": "Message",
+    "status": 201,
+    "params": [
+      {
+        "name": "chatId",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "path",
+        "required": true,
+        "description": ""
+      },
+      {
+        "name": "Idempotency-Key",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "header",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  },
+  {
+    "oid": "readChat",
+    "method": "post",
+    "path": "/chats/{chatId}/read",
+    "title": "채팅 읽음 갱신",
+    "tag": "채팅",
+    "role": "로그인 사용자",
+    "desc": "동일방 메시지만. 읽음 위치는 감소하지 않음.",
+    "req": "ChatRead",
+    "res": null,
+    "status": 204,
+    "params": [
+      {
+        "name": "chatId",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "path",
+        "required": true,
+        "description": ""
+      }
+    ],
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      503
+    ],
+    "etag": false,
+    "internal": false,
+    "alternateStatus": null
+  }
+]
