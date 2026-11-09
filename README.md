@@ -73,10 +73,11 @@ Java 테스트는 Docker 없이 테스트 전용 네이티브 PostgreSQL을 실�
 Python 계약 검사에는 `legacy-baseline/requirements.lock`의 의존성이 필요합니다. `V2_PYTHON`으로 사용할 Python을 지정할 수 있습니다.
 
 ```powershell
+python -m pip install -r legacy-baseline/requirements.lock
 powershell -ExecutionPolicy Bypass -File .\scripts\verify.ps1 -Python python
 ```
 
-결과는 `verification/final-review.json`, `verification/junit`, `verification/spring-route-coverage.json`에 기록합니다. 기존 Python 전체 기준 테스트 결과는 복사본 기준의 과거 기록이며 Java 테스트 수에 합산하지 않습니다. 원격 CI와 Docker 이미지 실행은 여기서 수행하지 않았습니다.
+검증 결과는 `verification/`에 저장합니다. 기존 FastAPI 데이터를 이관하기 전에 검사하려면 `-LegacyData`로 해당 데이터 폴더를 지정합니다. `-LegacySuite`는 기존 Python 테스트도 실행합니다.
 
 Windows 한글 경로의 Java worker 인코딩·소켓 경로 문제를 피하기 위해 빌드 산출물은 ASCII 임시 경로에 생길 수 있습니다. `V2_JAVA_TMP / V2_BUILD_DIR`로 경로를 지정할 수 있습니다.
 

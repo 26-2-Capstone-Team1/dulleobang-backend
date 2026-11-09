@@ -5,6 +5,7 @@ import ast
 import json
 import sys
 ROOT = Path(__file__).resolve().parents[1]
+REPORTS = ROOT / "verification"
 sys.path.insert(0, str(ROOT / "legacy-baseline"))
 from app.main import create_app
 from app.core import Settings
@@ -27,7 +28,7 @@ groups = {
     "ai-jobs": ("AiJobController", "P6"), "captures": ("CaptureController", "P6"),
     "room-states": ("RoomStateController", "P7"), "internal": ("WorkerJobController", "P6")}
 rows = []
-coverage_file = ROOT / "verification/spring-route-coverage.json"
+coverage_file = REPORTS / "spring-route-coverage.json"
 bindings = {}
 if coverage_file.exists():
     coverage = json.loads(coverage_file.read_text(encoding="utf-8"))
@@ -68,10 +69,10 @@ for file in sorted((ROOT / "legacy-baseline/tests").glob("test_*.py")):
             category = "HTTP scenario" if ("client." in function or "client," in function or "matrix_server" in function) else "Python/unit fixture"
             classification.append({"file": file.name, "test": node.name, "classification": category})
 report = {"passed": True, "apiCount": 97, "auxiliaryCount": 4, "routes": rows, "legacyTestClassification": classification}
-(ROOT / "verification/inventory-check.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+REPORTS.mkdir(exist_ok=True)
+(REPORTS / "inventory-check.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 docs = ["# API 이전 담당표", "", "Controller 이름은 실제 Spring MVC 등록 검사에서 가져옵니다. 개별 업무 흐름·권한·경쟁 조건은 도메인별 통합 테스트에서 별도로 검증합니다.", "",
         "| 메서드 | 경로 | 대상 Controller | 구현 단계 | 현재 상태 |", "|---|---|---|---|---|"]
 docs.extend(f"| {r['method']} | {r['path']} | {r['targetController']} | {r['implementationPhase']} | {r['implementationStatus']} |" for r in rows)
-(ROOT / "docs").mkdir(exist_ok=True)
-(ROOT / "docs/api-ownership.md").write_text("\n".join(docs) + "\n", encoding="utf-8")
+(REPORTS / "api-ownership.md").write_text("\n".join(docs) + "\n", encoding="utf-8")
 print("97 API + 4 auxiliary routes match; ownership and test classification recorded")
