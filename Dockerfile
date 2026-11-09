@@ -1,6 +1,8 @@
 FROM eclipse-temurin:21-jdk AS builder
 WORKDIR /workspace
-COPY . .
+COPY gradlew build.gradle settings.gradle gradle.properties gradle.lockfile ./
+COPY gradle/ gradle/
+COPY src/main/ src/main/
 RUN bash gradlew bootJar --no-daemon
 FROM eclipse-temurin:21-jre
 WORKDIR /app

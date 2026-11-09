@@ -1,4 +1,3 @@
-param([switch]$NativePostgres)
 . (Join-Path $PSScriptRoot 'java-env.ps1')
 $taskSecretsFile = Join-Path $taskProjectRoot '.runtime\dev-secrets.json'
 if (-not (Test-Path -LiteralPath $taskSecretsFile)) {
@@ -18,11 +17,6 @@ foreach ($taskName in @('JWT_SECRET','WORKER_JWT_SECRET','STORAGE_SECRET')) {
         [Environment]::SetEnvironmentVariable($taskName,$taskSavedKeys.$taskName,'Process')
     }
 }
-if ($NativePostgres) {
-    Write-Host 'Starting v2 backend on :8081 with a disposable native PostgreSQL database.'
-    & .\gradlew.bat localRun --no-daemon
-} else {
-    Write-Host 'Starting v2 backend on :8081. Start the Compose PostgreSQL service first.'
-    & .\gradlew.bat bootRun --no-daemon
-}
+Write-Host 'Starting the backend. Make sure PostgreSQL is running.'
+& .\gradlew.bat bootRun --no-daemon
 if ($LASTEXITCODE -ne 0) { throw 'Server stopped with an error.' }

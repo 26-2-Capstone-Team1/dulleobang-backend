@@ -2,8 +2,8 @@
 .gradle
 build
 .runtime
-.tools
-legacy-baseline
+.venv
+.env
 verification
 __pycache__
 *.pyc
