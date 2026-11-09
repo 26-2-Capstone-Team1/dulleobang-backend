@@ -1,0 +1,721 @@
+{
+  "baselineDate": "2026-10-16",
+  "source": "C:\\Users\\kimyoonjae\\Desktop\\캡스톤\\code\\dulleobang-backend",
+  "countingRule": "HTTP method + registered path, excluding HEAD/OPTIONS and documentation routes",
+  "apiOperationCount": 97,
+  "counts": {
+    "health": 2,
+    "v1": 60,
+    "storage": 2,
+    "mobile": 37
+  },
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/health/live",
+      "audience": "health",
+      "operationId": null,
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/health/ready",
+      "audience": "health",
+      "operationId": null,
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/signup",
+      "audience": "v1",
+      "operationId": "signup",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "audience": "v1",
+      "operationId": "login",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "audience": "v1",
+      "operationId": "refreshToken",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "audience": "v1",
+      "operationId": "logout",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "audience": "v1",
+      "operationId": "getMe",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/users/me",
+      "audience": "v1",
+      "operationId": "updateMe",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/listings",
+      "audience": "v1",
+      "operationId": "searchListings",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/listings",
+      "audience": "v1",
+      "operationId": "createListing",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/listings",
+      "audience": "v1",
+      "operationId": "getMyListings",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/listings/{listingId}",
+      "audience": "v1",
+      "operationId": "getListing",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/listings/{listingId}",
+      "audience": "v1",
+      "operationId": "updateListing",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/listings/{listingId}/publication",
+      "audience": "v1",
+      "operationId": "setPublication",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/listings/{listingId}",
+      "audience": "v1",
+      "operationId": "deleteListing",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/upload-sessions",
+      "audience": "v1",
+      "operationId": "createUploadSession",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/upload-sessions/{uploadSessionId}",
+      "audience": "v1",
+      "operationId": "getUploadSession",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/upload-sessions/{uploadSessionId}/upload-urls",
+      "audience": "v1",
+      "operationId": "renewUploadUrls",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/upload-sessions/{uploadSessionId}/complete",
+      "audience": "v1",
+      "operationId": "verifyUploadSession",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assets/{fileId}/download",
+      "audience": "v1",
+      "operationId": "getAssetDownload",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/listings/{listingId}/captures",
+      "audience": "v1",
+      "operationId": "submitRoomCapture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/furniture/{furnitureId}/captures",
+      "audience": "v1",
+      "operationId": "submitFurnitureCapture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/captures/{captureId}",
+      "audience": "v1",
+      "operationId": "getCapture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-jobs/{jobId}",
+      "audience": "v1",
+      "operationId": "getJob",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-jobs/{jobId}/retries",
+      "audience": "v1",
+      "operationId": "retryJob",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-jobs/{jobId}/cancel",
+      "audience": "v1",
+      "operationId": "cancelJob",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/listings/{listingId}/space",
+      "audience": "v1",
+      "operationId": "getSpace",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/listings/{listingId}/objects",
+      "audience": "v1",
+      "operationId": "getObjects",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/listings/{listingId}/objects",
+      "audience": "v1",
+      "operationId": "classifyObjects",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/listings/{listingId}/room-states",
+      "audience": "v1",
+      "operationId": "createRoomState",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/listings/{listingId}/room-states",
+      "audience": "v1",
+      "operationId": "getRoomStates",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/room-states/{roomStateId}",
+      "audience": "v1",
+      "operationId": "getRoomState",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/room-states/{roomStateId}",
+      "audience": "v1",
+      "operationId": "deleteRoomState",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/furniture",
+      "audience": "v1",
+      "operationId": "createFurniture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/furniture",
+      "audience": "v1",
+      "operationId": "getMyFurniture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/furniture/{furnitureId}",
+      "audience": "v1",
+      "operationId": "getFurniture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/furniture/{furnitureId}",
+      "audience": "v1",
+      "operationId": "updateFurniture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/furniture/{furnitureId}",
+      "audience": "v1",
+      "operationId": "deleteFurniture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/listings/{listingId}/placements",
+      "audience": "v1",
+      "operationId": "getPlacements",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/listings/{listingId}/placements",
+      "audience": "v1",
+      "operationId": "savePlacements",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/listings/{listingId}/placements",
+      "audience": "v1",
+      "operationId": "deletePlacements",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/placements",
+      "audience": "v1",
+      "operationId": "getMyPlacements",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/internal/ai-jobs/{jobId}/claim",
+      "audience": "v1",
+      "operationId": "claimJob",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/internal/ai-jobs/{jobId}/heartbeat",
+      "audience": "v1",
+      "operationId": "heartbeatJob",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/internal/ai-jobs/{jobId}/artifacts",
+      "audience": "v1",
+      "operationId": "createJobArtifacts",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/internal/ai-jobs/{jobId}/complete",
+      "audience": "v1",
+      "operationId": "completeJob",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/internal/ai-jobs/{jobId}/fail",
+      "audience": "v1",
+      "operationId": "failJob",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/oauth/kakao",
+      "audience": "v1",
+      "operationId": "loginKakao",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/oauth/google",
+      "audience": "v1",
+      "operationId": "loginGoogle",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/listing-agent-verification",
+      "audience": "v1",
+      "operationId": "getAgentProfile",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/users/me/listing-agent-verification",
+      "audience": "v1",
+      "operationId": "applyAgentVerification",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/listings/{listingId}/scrap",
+      "audience": "v1",
+      "operationId": "saveScrap",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/listings/{listingId}/scrap",
+      "audience": "v1",
+      "operationId": "deleteScrap",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/scraps",
+      "audience": "v1",
+      "operationId": "getScraps",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/listings/{listingId}/reports",
+      "audience": "v1",
+      "operationId": "createListingReport",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/chats",
+      "audience": "v1",
+      "operationId": "createChat",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/chats",
+      "audience": "v1",
+      "operationId": "getChats",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/chats/{chatId}",
+      "audience": "v1",
+      "operationId": "getChat",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/chats/{chatId}/messages",
+      "audience": "v1",
+      "operationId": "getChatMessages",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/chats/{chatId}/messages",
+      "audience": "v1",
+      "operationId": "sendChatMessage",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/chats/{chatId}/read",
+      "audience": "v1",
+      "operationId": "readChat",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/listings/{listingId}/captures/zip",
+      "audience": "v1",
+      "operationId": "submitRoomCaptureZip",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "PUT",
+      "path": "/storage/{file_id}",
+      "audience": "storage",
+      "operationId": null,
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/storage/{file_id}",
+      "audience": "storage",
+      "operationId": null,
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/signup",
+      "audience": "mobile",
+      "operationId": "signup",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "audience": "mobile",
+      "operationId": "login",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "audience": "mobile",
+      "operationId": "refreshToken",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "audience": "mobile",
+      "operationId": "logout",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me",
+      "audience": "mobile",
+      "operationId": "getMe",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/listings",
+      "audience": "mobile",
+      "operationId": "searchListings",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/listings",
+      "audience": "mobile",
+      "operationId": "createListing",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me/listings",
+      "audience": "mobile",
+      "operationId": "getMyListings",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/listings/{listingId}",
+      "audience": "mobile",
+      "operationId": "getListing",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai-jobs/{jobId}",
+      "audience": "mobile",
+      "operationId": "getJob",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/listings/{listingId}/space",
+      "audience": "mobile",
+      "operationId": "getSpace",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/listings/{listingId}/objects",
+      "audience": "mobile",
+      "operationId": "getObjects",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/listings/{listingId}/objects",
+      "audience": "mobile",
+      "operationId": "classifyObjects",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/listings/{listingId}/room-states",
+      "audience": "mobile",
+      "operationId": "createRoomState",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/listings/{listingId}/room-states",
+      "audience": "mobile",
+      "operationId": "getRoomStates",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/room-states/{roomStateId}",
+      "audience": "mobile",
+      "operationId": "getRoomState",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/room-states/{roomStateId}",
+      "audience": "mobile",
+      "operationId": "deleteRoomState",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/furniture",
+      "audience": "mobile",
+      "operationId": "createFurniture",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me/furniture",
+      "audience": "mobile",
+      "operationId": "getMyFurniture",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/furniture/{furnitureId}",
+      "audience": "mobile",
+      "operationId": "getFurniture",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/listings/{listingId}/placements",
+      "audience": "mobile",
+      "operationId": "getPlacements",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/listings/{listingId}/placements",
+      "audience": "mobile",
+      "operationId": "savePlacements",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/oauth/kakao",
+      "audience": "mobile",
+      "operationId": "loginKakao",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/oauth/google",
+      "audience": "mobile",
+      "operationId": "loginGoogle",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/listings/{listingId}/scrap",
+      "audience": "mobile",
+      "operationId": "deleteScrap",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me/scraps",
+      "audience": "mobile",
+      "operationId": "getScraps",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/listings/{listingId}/reports",
+      "audience": "mobile",
+      "operationId": "createListingReport",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me/agent-profile",
+      "audience": "mobile",
+      "operationId": "getAgentProfile",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/me/agent-profile",
+      "audience": "mobile",
+      "operationId": "applyAgentVerification",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/listings/{listingId}/images",
+      "audience": "mobile",
+      "operationId": "uploadListingImages",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/listings/{listingId}/captures",
+      "audience": "mobile",
+      "operationId": "submitRoomCaptureZip",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/furniture/{furnitureId}/captures",
+      "audience": "mobile",
+      "operationId": "submitFurnitureCaptureZip",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/listings/{listingId}/scrap",
+      "audience": "mobile",
+      "operationId": "saveScrap",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat",
+      "audience": "mobile",
+      "operationId": "getChats",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat",
+      "audience": "mobile",
+      "operationId": "createChat",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/{chatId}",
+      "audience": "mobile",
+      "operationId": "getChat",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/{chatId}",
+      "audience": "mobile",
+      "operationId": "sendChatMessage",
+      "includedInOpenApi": false
+    }
+  ]
+}

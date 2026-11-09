@@ -1,0 +1,52 @@
+{
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/v1/furniture/sam3d-imports",
+      "audience": "extension",
+      "operationId": "importSam3dFurniture"
+    },
+    {
+      "method": "POST",
+      "path": "/api/furniture/sam3d-imports",
+      "audience": "extension",
+      "operationId": "importSam3dFurniture"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Sam3dImport": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "studioJobId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "BED",
+              "DESK",
+              "SOFA",
+              "WARDROBE",
+              "SHELF",
+              "CHAIR",
+              "OTHER"
+            ]
+          }
+        },
+        "required": [
+          "studioJobId",
+          "name",
+          "category"
+        ]
+      }
+    }
+  }
+}

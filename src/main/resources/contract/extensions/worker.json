@@ -1,0 +1,14 @@
+{
+  "queries": {"pollWorkerJobs": {"limit":{"type":"integer","minimum":1,"maximum":50,"default":50}}},
+  "routes": [{
+    "method": "GET",
+    "path": "/",
+    "audience": "support",
+    "operationId": "rootHealth"
+  }, {
+    "method": "GET",
+    "path": "/api/v1/internal/ai-jobs",
+    "audience": "internal",
+    "operationId": "pollWorkerJobs"
+  }]
+}

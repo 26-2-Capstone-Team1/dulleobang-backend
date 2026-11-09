@@ -1,18 +1,28 @@
-param([switch]$Reload, [int]$Port = 8000)
-$ErrorActionPreference = 'Stop'
-$projectPath = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-Set-Location -LiteralPath $projectPath
-$venvPython = Join-Path $projectPath '.venv\Scripts\python.exe'
-if (-not (Test-Path -LiteralPath $venvPython)) {
-    python -m venv .venv
-    if ($LASTEXITCODE -ne 0) { throw 'Python 3.11 이상이 필요합니다.' }
-    & $venvPython -m pip install -r requirements.lock
-    if ($LASTEXITCODE -ne 0) { throw '의존성 설치에 실패했습니다.' }
-    & $venvPython -m pip install --no-deps -e .
-    if ($LASTEXITCODE -ne 0) { throw '프로젝트 설치에 실패했습니다.' }
+param([switch]$NativePostgres)
+. (Join-Path $PSScriptRoot 'java-env.ps1')
+$taskSecretsFile = Join-Path $taskProjectRoot '.runtime\dev-secrets.json'
+if (-not (Test-Path -LiteralPath $taskSecretsFile)) {
+    New-Item -ItemType Directory -Path (Split-Path -Parent $taskSecretsFile) -Force | Out-Null
+    $taskKeys = @{}
+    foreach ($taskName in @('JWT_SECRET','WORKER_JWT_SECRET','STORAGE_SECRET')) {
+        $taskBytes = New-Object byte[] 48
+        $taskRandom = [Security.Cryptography.RandomNumberGenerator]::Create()
+        try { $taskRandom.GetBytes($taskBytes) } finally { $taskRandom.Dispose() }
+        $taskKeys[$taskName] = [Convert]::ToBase64String($taskBytes)
+    }
+    $taskKeys | ConvertTo-Json | Set-Content -LiteralPath $taskSecretsFile -Encoding UTF8
 }
-$arguments = @('-m', 'uvicorn', 'app.main:app_factory', '--factory', '--host', '127.0.0.1', '--port', "$Port", '--no-access-log')
-if ($Reload) { $arguments += '--reload' }
-Write-Host "둘러방 API: http://127.0.0.1:$Port/docs"
-& $venvPython @arguments
-
+$taskSavedKeys = Get-Content -Raw -LiteralPath $taskSecretsFile | ConvertFrom-Json
+foreach ($taskName in @('JWT_SECRET','WORKER_JWT_SECRET','STORAGE_SECRET')) {
+    if (-not [Environment]::GetEnvironmentVariable($taskName,'Process')) {
+        [Environment]::SetEnvironmentVariable($taskName,$taskSavedKeys.$taskName,'Process')
+    }
+}
+if ($NativePostgres) {
+    Write-Host 'Starting v2 backend on :8081 with a disposable native PostgreSQL database.'
+    & .\gradlew.bat localRun --no-daemon
+} else {
+    Write-Host 'Starting v2 backend on :8081. Start the Compose PostgreSQL service first.'
+    & .\gradlew.bat bootRun --no-daemon
+}
+if ($LASTEXITCODE -ne 0) { throw 'Server stopped with an error.' }

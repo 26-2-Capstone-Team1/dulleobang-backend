@@ -1,0 +1,20 @@
+{
+  "description": "PR #2 mesh compatibility. Existing mobile routes and fields are retained; POINT_CLOUD_PLY_V1 uses pointsUri.",
+  "components": {"schemas": {
+    "Pr2MeshSource": {
+      "type":"object", "additionalProperties":false,
+      "properties": {
+        "roomAsset":{"$ref":"#/components/schemas/AssetRef"},
+        "roomCollisionAsset":{"$ref":"#/components/schemas/AssetRef"},
+        "objectAssets":{"type":"array","maxItems":500,"items":{
+          "type":"object","additionalProperties":false,
+          "properties":{"objectId":{"type":"string","format":"uuid"},"asset":{"$ref":"#/components/schemas/AssetRef"}},
+          "required":["objectId","asset"]
+        }},
+        "roomGeometry":{"type":"object"},
+        "glass":{"type":"array","maxItems":200,"items":{"type":"object"}}
+      },
+      "required":["roomAsset","roomCollisionAsset","objectAssets","roomGeometry","glass"]
+    }
+  }}
+}

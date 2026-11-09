@@ -1,0 +1,5 @@
+# Preserve the bytes covered by fixture hashes and the frozen API contract.
+src/test/resources/fixtures/** -text
+src/main/resources/contract/v1/** -text
+legacy-baseline/app/contract/** -text
+gradlew text eol=lf
