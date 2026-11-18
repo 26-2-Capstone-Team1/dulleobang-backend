@@ -1,6 +1,7 @@
 package com.dulleobang.job.repository;
 
 import com.dulleobang.job.domain.JobRecord;
+import com.dulleobang.job.domain.JobTiming;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.jdbc.core.*;
@@ -99,7 +100,7 @@ public class JobRepository {
             + " WHERE job_id=?",
         worker,
         hash,
-        ts(now.plusSeconds(120)),
+        ts(now.plus(JobTiming.WORKER_LEASE)),
         ts(now),
         ts(now),
         id);

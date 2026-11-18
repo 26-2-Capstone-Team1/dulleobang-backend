@@ -1,5 +1,6 @@
 package com.dulleobang.job.service;
 
+import com.dulleobang.job.domain.JobTiming;
 import com.dulleobang.job.repository.JobRepository;
 import java.time.Clock;
 import java.util.UUID;
@@ -37,11 +38,18 @@ public class JobReconciliationService {
     }
     if (job.status().equals("RUNNING")
         && (!job.leaseExpiresAt().isAfter(now)
-            || !job.attemptStartedAt().plusSeconds(1800).isAfter(now)))
+            || !job.attemptStartedAt().plus(JobTiming.ATTEMPT_LIMIT).isAfter(now)))
       commands.fail(job, "WORKER_TIMEOUT", "AI worker lease expired.");
-    else if (job.status().equals("QUEUED") && !job.createdAt().plusSeconds(3600).isAfter(now)) {
+    else if (job.status().equals("QUEUED")
+        && !job.createdAt().plus(JobTiming.QUEUE_LIMIT).isAfter(now)) {
       jobs.fail(
-          job.id(), "INTERNAL_ERROR", "AI queue wait exceeded 60 minutes.", true, false, now, now);
+          job.id(),
+          "INTERNAL_ERROR",
+          "AI queue wait exceeded " + JobTiming.QUEUE_LIMIT.toMinutes() + " minutes.",
+          true,
+          false,
+          now,
+          now);
       jobs.pointer(jobs.find(job.id(), false).orElseThrow(), false, false, now);
     }
   }

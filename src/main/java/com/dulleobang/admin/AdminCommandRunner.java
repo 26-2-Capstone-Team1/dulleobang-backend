@@ -3,6 +3,7 @@ package com.dulleobang.admin;
 import com.dulleobang.admin.service.*;
 import com.dulleobang.common.json.StrictJson;
 import com.dulleobang.job.service.JobMaintenanceService;
+import java.time.Duration;
 import java.util.UUID;
 import org.springframework.boot.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,7 +40,10 @@ public class AdminCommandRunner implements ApplicationRunner {
           System.out.println(
               workers.issue(
                   environment.getRequiredProperty("dulleobang.admin.worker-id"),
-                  environment.getProperty("dulleobang.admin.seconds", Integer.class, 3600)));
+                  environment.getProperty(
+                      "dulleobang.admin.seconds",
+                      Integer.class,
+                      (int) Duration.ofHours(3).toSeconds())));
       case "queue" ->
           System.out.println(
               StrictJson.stringify(

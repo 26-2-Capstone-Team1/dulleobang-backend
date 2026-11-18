@@ -6,6 +6,9 @@ import subprocess
 import sys
 import time
 
+# Leave time to publish artifacts before the backend's two-hour attempt deadline.
+ENGINE_TIMEOUT_SECONDS = 2 * 60 * 60 - 100
+
 
 def stop_process(task):
     if task.poll() is not None:
@@ -25,7 +28,7 @@ def stop_process(task):
 
 
 def wait_for_engine(task, lost):
-    deadline = time.monotonic() + 1700
+    deadline = time.monotonic() + ENGINE_TIMEOUT_SECONDS
     while task.poll() is None:
         if lost.is_set() or time.monotonic() > deadline:
             raise RuntimeError("Worker lease or attempt time limit expired")

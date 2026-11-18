@@ -1,5 +1,6 @@
 package com.dulleobang.job.repository;
 
+import com.dulleobang.job.domain.JobTiming;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,11 +19,13 @@ public class WorkerQueueRepository {
         "SELECT j.job_id,j.type FROM job_queue q JOIN ai_jobs j USING(job_id)"
             + " WHERE q.available_at<=? AND j.due_at<=?"
             + " AND j.status IN ('QUEUED','RETRY_WAIT') AND j.attempt_no<3"
+            + " AND (j.status='RETRY_WAIT' OR j.created_at>?)"
             + " ORDER BY q.available_at,q.job_id LIMIT ?",
         (rs, n) ->
             Map.<String, Object>of("jobId", rs.getObject(1, UUID.class), "type", rs.getString(2)),
         java.sql.Timestamp.from(now),
         java.sql.Timestamp.from(now),
+        java.sql.Timestamp.from(now.minus(JobTiming.QUEUE_LIMIT)),
         limit);
   }
 }

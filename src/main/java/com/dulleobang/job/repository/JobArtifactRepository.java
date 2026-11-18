@@ -1,6 +1,7 @@
 package com.dulleobang.job.repository;
 
 import com.dulleobang.job.domain.JobRecord;
+import com.dulleobang.job.domain.JobTiming;
 import com.dulleobang.upload.domain.AssetFile;
 import com.dulleobang.upload.repository.UploadRepository;
 import java.time.Instant;
@@ -45,12 +46,11 @@ public class JobArtifactRepository {
         jdbc.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM assets a JOIN ai_jobs j ON j.job_id=a.job_id WHERE"
                 + " a.file_id=? AND a.attempt_no=j.attempt_no AND j.status='RUNNING' AND"
-                + " j.lease_expires_at>? AND j.attempt_started_at>?::timestamptz - INTERVAL '30"
-                + " minutes')",
+                + " j.lease_expires_at>? AND j.attempt_started_at>?)",
             Boolean.class,
             file,
             java.sql.Timestamp.from(now),
-            java.sql.Timestamp.from(now)));
+            java.sql.Timestamp.from(now.minus(JobTiming.ATTEMPT_LIMIT))));
   }
 
   public void lockForFile(UUID file) {

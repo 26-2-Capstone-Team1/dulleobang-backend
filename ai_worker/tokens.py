@@ -6,6 +6,8 @@ import hmac
 import json
 import time
 
+WORKER_TOKEN_TTL_SECONDS = 3 * 60 * 60
+
 
 def worker_token(secret_file, worker_id):
     def encode(value):
@@ -24,7 +26,7 @@ def worker_token(secret_file, worker_id):
                     "sub": worker_id,
                     "scope": "AI_WORKER",
                     "iat": now,
-                    "exp": now + 3600,
+                    "exp": now + WORKER_TOKEN_TTL_SECONDS,
                 }
             ),
         ]
