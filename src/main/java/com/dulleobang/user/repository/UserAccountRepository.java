@@ -44,6 +44,15 @@ public class UserAccountRepository {
     return find(id).orElseThrow();
   }
 
+  public void replaceDisplayName(UUID id, String expectedName, String name) {
+    jdbc.update(
+        "UPDATE users SET display_name=?,resource_version=resource_version+1"
+            + " WHERE user_id=? AND display_name=?",
+        name,
+        id,
+        expectedName);
+  }
+
   public boolean patch(UUID id, long version, String name, String phone, boolean isPublic) {
     return jdbc.update(
             "UPDATE users SET"

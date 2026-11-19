@@ -45,7 +45,7 @@ public class KakaoTokenVerifier implements SocialTokenVerifier {
         provider(),
         info.path("id").asText(),
         email,
-        account.path("profile").path("nickname").asText("카카오 사용자"));
+        account.path("profile").path("nickname").asText(null));
   }
 
   private JsonNode get(String url, Map<String, String> headers) {
