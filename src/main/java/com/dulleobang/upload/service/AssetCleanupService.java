@@ -3,6 +3,7 @@ package com.dulleobang.upload.service;
 import com.dulleobang.infrastructure.storage.AssetReclaimer;
 import com.dulleobang.upload.repository.*;
 import java.time.Clock;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -29,6 +30,7 @@ public class AssetCleanupService {
   }
 
   public void clean() {
+    cleanDeletedAssets();
     var now = clock.instant();
     retention.expireSessions(now);
     for (var id : retention.candidates(now))
@@ -50,5 +52,16 @@ public class AssetCleanupService {
             if (!retention.retained(sha)) storage.deleteObject(sha, cutoff);
           });
     storage.cleanStaging(cutoff);
+  }
+
+  private void cleanDeletedAssets() {
+    for (var entry : retention.pendingDeletions())
+      transactions.executeWithoutResult(
+          tx -> {
+            if (!retention.takeDeletion(entry.id())) return;
+            retention.lockBlob(entry.sha256());
+            if (!retention.retained(entry.sha256()))
+              storage.deleteObject(entry.sha256(), Instant.MAX);
+          });
   }
 }

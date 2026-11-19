@@ -2,12 +2,12 @@
   "baselineDate": "2026-10-16",
   "source": "C:\\Users\\kimyoonjae\\Desktop\\캡스톤\\code\\dulleobang-backend",
   "countingRule": "HTTP method + registered path, excluding HEAD/OPTIONS and documentation routes",
-  "apiOperationCount": 97,
+  "apiOperationCount": 99,
   "counts": {
     "health": 2,
-    "v1": 60,
+    "v1": 61,
     "storage": 2,
-    "mobile": 37
+    "mobile": 38
   },
   "routes": [
     {
@@ -57,6 +57,13 @@
       "path": "/api/v1/users/me",
       "audience": "v1",
       "operationId": "getMe",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/users/me",
+      "audience": "v1",
+      "operationId": "deleteMe",
       "includedInOpenApi": true
     },
     {
@@ -491,6 +498,13 @@
       "path": "/api/users/me",
       "audience": "mobile",
       "operationId": "getMe",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/me",
+      "audience": "mobile",
+      "operationId": "deleteMe",
       "includedInOpenApi": false
     },
     {

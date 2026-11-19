@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AssetRetentionRepository {
+  public record QueuedDeletion(long id, String sha256) {}
+
   private static final String ELIGIBLE =
       """
       (EXISTS(SELECT 1 FROM listings l WHERE l.listing_id=a.listing_id AND l.deleted_at IS NOT NULL)
@@ -72,6 +74,16 @@ public class AssetRetentionRepository {
     return Boolean.TRUE.equals(
         jdbc.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM assets WHERE sha256=? AND stored)", Boolean.class, sha));
+  }
+
+  public List<QueuedDeletion> pendingDeletions() {
+    return jdbc.query(
+        "SELECT id,sha256 FROM asset_deletion_queue ORDER BY id LIMIT 500",
+        (rs, n) -> new QueuedDeletion(rs.getLong("id"), rs.getString("sha256")));
+  }
+
+  public boolean takeDeletion(long id) {
+    return jdbc.update("DELETE FROM asset_deletion_queue WHERE id=?", id) == 1;
   }
 
   public void expireSessions(Instant now) {

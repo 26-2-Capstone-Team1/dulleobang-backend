@@ -595,6 +595,27 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "deleteMe",
+        "summary": "회원 탈퇴",
+        "description": "로그인한 본인의 계정과 연결된 매물, 3D 에셋, 채팅을 삭제합니다.",
+        "responses": {
+          "204": {
+            "description": "계정 삭제 완료"
+          },
+          "401": {
+            "description": "로그인 필요"
+          },
+          "503": {
+            "description": "서버 일시 오류"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/listings": {
