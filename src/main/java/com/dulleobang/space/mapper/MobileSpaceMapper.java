@@ -21,17 +21,51 @@ public final class MobileSpaceMapper {
     result.put("collisionGeometryUri", bundle.path("collisionAsset").path("url").asText());
     result.put("roomGeometry", geometry(bundle.path("geometry")));
     result.put("roomDimensions", bundle.path("roomDimensions"));
-    result.put(space ? "objects" : "remainingObjects", objects(bundle.path("objects")));
+    var meshSource = bundle.path("meshSource");
     if (bundle.has("meshSource")) {
-      result.put("roomGeometry", bundle.path("meshSource").path("roomGeometry"));
-      result.put("glass", bundle.path("meshSource").path("glass"));
+      result.put("roomGeometry", meshSource.path("roomGeometry"));
+      result.put("glass", meshSource.path("glass"));
+    }
+    if (space) {
+      String roomUri = assetUri(meshSource.path("roomAsset"));
+      if (roomUri != null) result.put("meshUri", roomUri);
+      result.put("objects", objects(bundle.path("objects"), objectModelUris(meshSource)));
+    } else {
+      result.put("remainingObjects", objects(bundle.path("objects")));
     }
     return result;
   }
 
+  private static Map<String, String> objectModelUris(JsonNode meshSource) {
+    var uris = new HashMap<String, String>();
+    for (var entry : meshSource.path("objectAssets")) {
+      String uri = assetUri(entry.path("asset"));
+      if (uri != null) uris.put(entry.path("objectId").asText(), uri);
+    }
+    return uris;
+  }
+
+  private static String assetUri(JsonNode asset) {
+    String uri = asset.path("url").textValue();
+    return uri == null || uri.isBlank() ? null : uri;
+  }
+
   public static List<Map<String, Object>> objects(JsonNode objects) {
+    return objects(objects, Map.of());
+  }
+
+  private static List<Map<String, Object>> objects(
+      JsonNode objects, Map<String, String> modelUris) {
     var result = new ArrayList<Map<String, Object>>();
-    for (var object : objects) result.add(object(object));
+    for (var object : objects) {
+      var mapped = object(object);
+      String uri = modelUris.get(object.path("objectId").asText());
+      if (uri != null) {
+        mapped = new LinkedHashMap<>(mapped);
+        mapped.put("modelUri", uri);
+      }
+      result.add(mapped);
+    }
     return result;
   }
 

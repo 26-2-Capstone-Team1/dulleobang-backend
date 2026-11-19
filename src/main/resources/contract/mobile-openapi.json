@@ -12809,6 +12809,11 @@
           },
           "removable": {
             "type": "boolean"
+          },
+          "modelUri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Signed GLB URL when the space contains a stored mesh for this object."
           }
         },
         "required": [
@@ -13138,7 +13143,20 @@
             "type": "integer"
           },
           "3dgsUri": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pointsUri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Signed point cloud PLY URL, also available as a fallback when meshUri is present."
+          },
+          "meshUri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Signed URL to the original room GLB when a mesh is available."
           },
           "collisionGeometryUri": {
             "type": "string"
