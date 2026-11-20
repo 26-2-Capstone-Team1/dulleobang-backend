@@ -7,13 +7,14 @@ import com.dulleobang.common.exception.ApiException;
 import com.dulleobang.common.json.StrictJson;
 import com.dulleobang.furniture.mapper.FurnitureCategoryMapper;
 import com.dulleobang.infrastructure.storage.AssetStorage;
+import com.dulleobang.infrastructure.storage.CatalogSourceFiles;
+import com.dulleobang.infrastructure.storage.CatalogSourceFiles.StagedAsset;
 import com.dulleobang.space.validation.BoundsValidator;
 import com.dulleobang.space.validation.GlbValidator;
 import com.dulleobang.upload.domain.AssetFile;
 import com.dulleobang.upload.repository.UploadRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
@@ -28,6 +29,7 @@ public class CatalogImportService {
   private final CatalogRepository catalog;
   private final UploadRepository uploads;
   private final AssetStorage storage;
+  private final CatalogSourceFiles source;
   private final GlbValidator glb;
   private final ContractValidator contracts;
   private final Clock clock;
@@ -36,12 +38,14 @@ public class CatalogImportService {
       CatalogRepository catalog,
       UploadRepository uploads,
       AssetStorage storage,
+      CatalogSourceFiles source,
       GlbValidator glb,
       ContractValidator contracts,
       Clock clock) {
     this.catalog = catalog;
     this.uploads = uploads;
     this.storage = storage;
+    this.source = source;
     this.glb = glb;
     this.contracts = contracts;
     this.clock = clock;
@@ -52,10 +56,7 @@ public class CatalogImportService {
     var article = directory.getFileName().toString();
     var catalogId = CatalogItem.ID_PREFIX + article;
     contracts.validate("CatalogId", StrictJson.stringify(catalogId));
-    var metaPath = directory.resolve("meta.json");
-    if (Files.size(metaPath) > 1024 * 1024)
-      throw new IllegalArgumentException("meta.json too large");
-    var meta = StrictJson.parse(Files.readAllBytes(metaPath));
+    var meta = StrictJson.parse(source.metadata(directory));
     if (meta.has("article") && !article.equals(meta.path("article").asText()))
       throw new IllegalArgumentException("article does not match the directory");
     if (!meta.path("name").isTextual() || !meta.path("category").isTextual())
@@ -104,7 +105,7 @@ public class CatalogImportService {
 
   private void validateGlb(StagedAsset asset, boolean collision, JsonNode box) throws IOException {
     try {
-      glb.validate(Files.readAllBytes(asset.staged().path()), collision, box);
+      glb.validate(asset.bytes(), collision, box);
     } catch (ApiException ex) {
       throw new IllegalArgumentException(asset.filename() + ": " + ex.code(), ex);
     }
@@ -122,16 +123,8 @@ public class CatalogImportService {
     if (hash.isMissingNode()) hash = meta.path("files").path(filename).path("sha256");
     if (!hash.isTextual() || !hash.asText().matches("[0-9a-fA-F]{64}"))
       throw new IllegalArgumentException("Missing or invalid SHA-256 for " + filename);
-    var sha = hash.asText().toLowerCase(Locale.ROOT);
-    var path = directory.resolve(filename);
-    long size = Files.size(path);
-    if (size <= 0 || size > maxMiB * 1024L * 1024L)
-      throw new IllegalArgumentException("Invalid size for " + filename);
-    try (var in = Files.newInputStream(path)) {
-      return new StagedAsset(filename, size, sha, storage.stage(in, size, sha));
-    } catch (ApiException ex) {
-      throw new IllegalArgumentException(filename + ": " + ex.code(), ex);
-    }
+    return source.stage(directory, filename, maxMiB * 1024L * 1024L,
+        hash.asText().toLowerCase(Locale.ROOT));
   }
 
   private void save(
@@ -169,11 +162,4 @@ public class CatalogImportService {
             item.importedAt()));
   }
 
-  private record StagedAsset(String filename, long size, String sha256, AssetStorage.Staged staged)
-      implements AutoCloseable {
-    @Override
-    public void close() {
-      staged.close();
-    }
-  }
 }

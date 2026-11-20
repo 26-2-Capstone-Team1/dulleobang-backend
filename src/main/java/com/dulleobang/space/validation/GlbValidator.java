@@ -48,7 +48,7 @@ public class GlbValidator {
         }
       }
       require(!collision || triangles <= 200000);
-      GlbTextureValidator.validate(file, accessors);
+      GlbTextureValidator.validate(file, accessors, room);
       return new GlbSceneValidator(doc, accessors, collision, box).validate();
     } catch (ApiException ex) {
       if (ex.status() == 400) throw new ApiException(422, "INVALID_ARTIFACT");

@@ -1,14 +1,28 @@
-"""Execute the unmodified PR #2 room pipeline or rebuild a private removal scene."""
+"""Run the PR #2 room pipeline, a private removal, or a furniture engine adapter."""
 from __future__ import annotations
 import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
+from tempfile import TemporaryDirectory
+import traceback
 import uuid
 import zipfile
 import httpx
-from .pr2 import convert_export, convert_removal
+from .failures import (
+    ENGINE_DEPENDENCY_EXIT,
+    INVALID_ENGINE_DATA_EXIT,
+    problem_code,
+    retryable_status,
+)
+INPUT_SUFFIXES = {
+    "application/json": ".json",
+    "application/zip": ".zip",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "model/vnd.usdz+zip": ".usdz",
+}
 
 
 def download(grant, target):
@@ -49,6 +63,8 @@ def extract(archive, target):
 def reconstruct(assignment, output):
     if 'archive' not in assignment['input']:
         raise ValueError('PR #2 requires the original iPhone capture.zip upload')
+    from .pr2 import convert_export
+
     root = Path(os.environ.get('BACKEND_CAPTURE_ROOT','/data/indoor-ai-poc/backend-captures'))/assignment['jobId']
     root.mkdir(parents=True,exist_ok=True)
     marker = root/'prepared.json'
@@ -74,6 +90,8 @@ def reconstruct(assignment, output):
 
 
 def remove(assignment, output):
+    from .pr2 import convert_removal
+
     folder=output/'downloads'
     folder.mkdir(exist_ok=True)
     files={}
@@ -85,11 +103,77 @@ def remove(assignment, output):
     convert_removal(assignment,output,files)
 
 
+def local_input(grant, folder):
+    asset = grant["asset"]
+    file_id = str(uuid.UUID(asset["fileId"]))
+    target = folder / (file_id + INPUT_SUFFIXES.get(asset["contentType"], ""))
+    if not target.exists():
+        download(grant, target)
+    return {
+        "path": str(target),
+        "asset": {key: asset[key] for key in ("fileId", "format", "contentType", "sha256", "byteSize")},
+    }
+
+
+def reconstruct_furniture(assignment, output):
+    engine = os.environ["DULLEOBANG_FURNITURE_ENGINE"]
+    inputs = assignment["input"]
+    with TemporaryDirectory(prefix="furniture-input-", dir=output.parent) as directory:
+        manifest_path = prepare_furniture_input(inputs, Path(directory))
+        environment = os.environ.copy()
+        environment.pop("DULLEOBANG_ASSIGNMENT", None)
+        process = subprocess.run(
+            [engine, str(manifest_path), str(output)], env=environment, check=False
+        )
+        if process.returncode == ENGINE_DEPENDENCY_EXIT:
+            raise SystemExit(ENGINE_DEPENDENCY_EXIT)
+        if process.returncode == INVALID_ENGINE_DATA_EXIT:
+            raise ValueError("Furniture engine rejected the capture")
+        process.check_returncode()
+
+
+def prepare_furniture_input(inputs, folder):
+    category = inputs.get("category")
+    if not isinstance(category, str) or not category.strip():
+        raise ValueError("Furniture capture requires a category")
+    manifest = {
+        "captureId": inputs["captureId"],
+        "category": category,
+        "measuredDimensions": inputs.get("measuredDimensions"),
+    }
+    for key in ("archive", "manifest", "roomplan", "roomplanStructure"):
+        grant = inputs.get(key)
+        if grant is not None:
+            manifest[key] = local_input(grant, folder)
+    for key in ("images", "depths", "confidences"):
+        grants = inputs.get(key, []) if "archive" not in manifest else []
+        manifest[key] = [local_input(grant, folder) for grant in grants]
+    if "archive" not in manifest and ("manifest" not in manifest or not manifest["images"]):
+        raise ValueError("Expected a furniture capture archive or a manifest and images")
+    manifest_path = folder / "input.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return manifest_path
+
+
 def main():
     assignment=json.loads(Path(os.environ['DULLEOBANG_ASSIGNMENT']).read_text())
     output=Path(os.environ['DULLEOBANG_OUTPUT']).resolve()
     if assignment['type']=='ROOM_RECONSTRUCTION': reconstruct(assignment,output)
     elif assignment['type']=='ROOM_OBJECT_REMOVAL': remove(assignment,output)
-    else: raise ValueError('This worker handles PR #2 rooms and private removal only')
+    elif assignment['type']=='FURNITURE_RECONSTRUCTION': reconstruct_furniture(assignment,output)
+    else: raise ValueError('Unsupported AI job type')
 
-if __name__=='__main__': main()
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, KeyError, TypeError, zipfile.BadZipFile):
+        traceback.print_exc()
+        raise SystemExit(INVALID_ENGINE_DATA_EXIT)
+    except httpx.HTTPStatusError as error:
+        status = error.response.status_code
+        print(f"Engine input download failed (HTTP {status})", flush=True)
+        transient = retryable_status(status) or problem_code(error.response) == "INVALID_STORAGE_GRANT"
+        raise SystemExit(ENGINE_DEPENDENCY_EXIT if transient else INVALID_ENGINE_DATA_EXIT)
+    except httpx.RequestError:
+        print("Engine input service unavailable", flush=True)
+        raise SystemExit(ENGINE_DEPENDENCY_EXIT)

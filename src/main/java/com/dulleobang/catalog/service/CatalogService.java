@@ -125,7 +125,7 @@ public class CatalogService {
     return value;
   }
 
-  public StoredResponse createFurnitureFromCatalog(
+  public StoredResponse createFromCatalog(
       UUID actor, String path, String key, JsonNode input, boolean mobile) {
     var response =
         idempotency.execute(

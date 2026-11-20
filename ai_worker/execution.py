@@ -6,6 +6,13 @@ import subprocess
 import sys
 import time
 
+from .failures import (
+    ENGINE_DEPENDENCY_EXIT,
+    INVALID_ENGINE_DATA_EXIT,
+    EngineDependencyError,
+    InvalidEngineData,
+)
+
 # Leave time to publish artifacts before the backend's two-hour attempt deadline.
 ENGINE_TIMEOUT_SECONDS = 2 * 60 * 60 - 100
 
@@ -30,11 +37,17 @@ def stop_process(task):
 def wait_for_engine(task, lost):
     deadline = time.monotonic() + ENGINE_TIMEOUT_SECONDS
     while task.poll() is None:
-        if lost.is_set() or time.monotonic() > deadline:
-            raise RuntimeError("Worker lease or attempt time limit expired")
+        if lost.is_set():
+            raise RuntimeError("Worker lease was lost")
+        if time.monotonic() > deadline:
+            raise TimeoutError("Worker attempt time limit expired")
         time.sleep(1)
+    if task.returncode == INVALID_ENGINE_DATA_EXIT:
+        raise InvalidEngineData("Invalid engine input or export; inspect engine.log")
+    if task.returncode == ENGINE_DEPENDENCY_EXIT:
+        raise EngineDependencyError("Engine input service unavailable; inspect engine.log")
     if task.returncode:
-        raise RuntimeError("PR #2 engine failed; inspect engine.log")
+        raise RuntimeError("AI engine failed; inspect engine.log")
 
 
 def run_engine(environment, log_path, lost):

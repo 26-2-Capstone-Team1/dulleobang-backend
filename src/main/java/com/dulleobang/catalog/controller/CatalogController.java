@@ -57,7 +57,7 @@ public class CatalogController {
             ? input.readMobile(body, type, "CatalogFurnitureCreate")
             : input.read(body, type, "CatalogFurnitureCreate");
     var result =
-        catalog.createFurnitureFromCatalog(
+        catalog.createFromCatalog(
             UUID.fromString(actor.getName()), request.getRequestURI(), key, json, mobile);
     contracts.validateResponse(mobile ? "MobileFurniture" : "Furniture", result.body(), mobile);
     return HttpResponses.stored(result);

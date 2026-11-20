@@ -8,6 +8,8 @@ from uuid import uuid4
 
 import httpx
 
+from .failures import LEASE_CONFLICTS, problem_code, retryable_status
+
 
 class WorkerClient:
     def __init__(self, base_url, token, worker_id):
@@ -43,13 +45,11 @@ class WorkerClient:
             json=data,
             headers={"X-Job-Lease-Token": self.assignment["leaseToken"]},
         )
-        if response.status_code in (401, 403, 409):
-            self.lost.set()
         if response.is_error:
-            try:
-                print('Worker callback rejected:', response.status_code, response.json().get('code'), flush=True)
-            except ValueError:
-                print('Worker callback rejected:', response.status_code, flush=True)
+            status, code = response.status_code, problem_code(response)
+            if status in (401, 403) or (status == 409 and code in LEASE_CONFLICTS):
+                self.lost.set()
+            print("Worker callback rejected:", status, code, flush=True)
         response.raise_for_status()
         return response.json()
 
@@ -85,7 +85,9 @@ class WorkerClient:
         while not self._stop.wait(30):
             try:
                 self.heartbeat()
-            except httpx.HTTPStatusError:
+            except httpx.HTTPStatusError as error:
+                if retryable_status(error.response.status_code):
+                    continue
                 self.lost.set()
                 return
             except httpx.RequestError:

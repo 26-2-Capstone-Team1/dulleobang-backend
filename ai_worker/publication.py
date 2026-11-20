@@ -5,6 +5,8 @@ import json
 import uuid
 import httpx
 
+from .failures import InvalidArtifact
+
 
 def content_type(role):
     if role == "SCENE":
@@ -58,6 +60,9 @@ def upload_files(descriptors, paths, grants):
 
 
 def bind_assets(result, refs):
+    if result["type"] == "FURNITURE_RECONSTRUCTION":
+        result.update(modelAsset=refs["MODEL"], collisionAsset=refs["COLLISION"])
+        return
     bundle = result["bundle"]
     bundle.update(
         sceneAsset=refs["SCENE"], geometryAsset=refs["GEOMETRY"], collisionAsset=refs["COLLISION"]
@@ -72,12 +77,27 @@ def bind_assets(result, refs):
 
 
 def publish(client, output):
-    document = json.loads((output / "result.json").read_text())
-    descriptors, paths = describe_files(client.assignment, document["files"], output)
+    try:
+        document = json.loads((output / "result.json").read_text())
+        result = document["result"]
+        files = document["files"]
+        if result["type"] != client.assignment["type"]:
+            raise ValueError("Output job type does not match the assignment")
+        if result["type"] == "FURNITURE_RECONSTRUCTION":
+            roles = [(item["key"], item["role"], item["format"]) for item in files]
+            if sorted(roles) != [("COLLISION", "COLLISION", "GLB_V2"), ("MODEL", "MODEL", "GLB_V2")]:
+                raise ValueError("Expected one MODEL and one COLLISION GLB")
+            if not all(isinstance(result[key], dict) for key in ("dimensions", "boundingBox", "quality")):
+                raise ValueError("Expected metric dimensions, bounding box, and quality")
+        descriptors, paths = describe_files(client.assignment, files, output)
+    except (FileNotFoundError, ValueError, KeyError, TypeError) as error:
+        raise InvalidArtifact("Invalid output document or files") from error
     grants = client.request("artifacts", {"files": descriptors})["uploads"]
     refs = upload_files(descriptors, paths, grants)
-    result = document["result"]
-    bind_assets(result, refs)
+    try:
+        bind_assets(result, refs)
+    except (KeyError, TypeError, AttributeError) as error:
+        raise InvalidArtifact("Output artifacts do not match the result") from error
     (output / "callback.json").write_text(json.dumps(result), encoding="utf-8")
     client.update_progress(99, "VALIDATING")
     return client.complete(result)

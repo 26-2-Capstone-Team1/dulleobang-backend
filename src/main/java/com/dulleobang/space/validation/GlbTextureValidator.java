@@ -10,13 +10,23 @@ import java.util.Set;
 import javax.imageio.ImageIO;
 
 final class GlbTextureValidator {
+  private static final long MAX_TEXTURE_PIXELS = 40_000_000;
+  private static final int MAX_ROOM_TEXTURE_SIDE = 8192;
+
   private GlbTextureValidator() {}
+
+  static boolean allowedSize(int width, int height, boolean room) {
+    return width > 0 && height > 0
+        && ((long) width * height <= MAX_TEXTURE_PIXELS
+            || (room && width <= MAX_ROOM_TEXTURE_SIDE && height <= MAX_ROOM_TEXTURE_SIDE));
+  }
 
   private static boolean isKtx2(com.fasterxml.jackson.databind.JsonNode image) {
     return image.path("mimeType").asText().equals("image/ktx2");
   }
 
-  static void validate(GlbDocument file, GlbAccessorReader accessors) throws IOException {
+  static void validate(GlbDocument file, GlbAccessorReader accessors, boolean room)
+      throws IOException {
     var doc = file.json();
     boolean basis = declared(doc, "extensionsUsed", BASIS);
     var images = doc.path("images");
@@ -39,7 +49,7 @@ final class GlbTextureValidator {
       require(GlbMeshoptValidator.buffer(view) == 0 && !GlbMeshoptValidator.compressed(view));
       int start = view.path("byteOffset").asInt(), size = integer(view.path("byteLength"));
       if (ktx2) {
-        GlbKtx2Validator.validate(file.binary().slice(start, size).order(ByteOrder.LITTLE_ENDIAN));
+        GlbKtx2Validator.validate(file.binary().slice(start, size).order(ByteOrder.LITTLE_ENDIAN), room);
         continue;
       }
       byte[] bytes = new byte[size];
@@ -56,7 +66,7 @@ final class GlbTextureValidator {
                   .equalsIgnoreCase(
                       image.path("mimeType").asText().equals("image/png") ? "PNG" : "JPEG"));
           int w = reader.getWidth(0), h = reader.getHeight(0);
-          require(w > 0 && h > 0 && (long) w * h <= 40000000);
+          require(allowedSize(w, h, room));
           require(reader.read(0) != null);
         } finally {
           reader.dispose();

@@ -8,6 +8,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import java.nio.charset.StandardCharsets;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,11 @@ public class ContractValidator {
   private final JsonNode sam3d;
   private final JsonNode responseSpec;
 
+  public ContractValidator() throws Exception {
+    this("");
+  }
+
+  @Autowired
   public ContractValidator(@Value("${BASE_URL:http://127.0.0.1:8081}") String baseUrl)
       throws Exception {
     try (var in = new ClassPathResource("contract/v1/openapi.json").getInputStream()) {

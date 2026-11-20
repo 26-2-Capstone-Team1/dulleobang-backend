@@ -12,13 +12,13 @@ final class GlbKtx2Validator {
 
   private GlbKtx2Validator() {}
 
-  static void validate(ByteBuffer image) {
+  static void validate(ByteBuffer image, boolean room) {
     require(image.capacity() >= HEADER_BYTES + LEVEL_BYTES);
     for (int i = 0; i < IDENTIFIER.length; i++) require(image.get(i) == IDENTIFIER[i]);
     int width = image.getInt(20), height = image.getInt(24);
     int levels = image.getInt(40), scheme = image.getInt(44);
     require(image.getInt(12) == 0 && image.getInt(16) == 1
-        && width > 0 && height > 0 && (long) width * height <= 40_000_000
+        && GlbTextureValidator.allowedSize(width, height, room)
         && image.getInt(28) == 0 && image.getInt(32) == 0 && image.getInt(36) == 1
         && levels >= 0 && levels <= 32 - Integer.numberOfLeadingZeros(Math.max(width, height))
         && scheme >= 0 && scheme <= 2);

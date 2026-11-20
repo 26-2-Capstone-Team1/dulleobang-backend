@@ -10,10 +10,12 @@ import uuid
 import httpx
 from .client import WorkerClient
 from .execution import run_engine
+from .failures import failure_for
 from .publication import publish
 from .tokens import worker_token
 
 SUPPORTED = {"ROOM_RECONSTRUCTION", "ROOM_OBJECT_REMOVAL"}
+FURNITURE_RECONSTRUCTION = "FURNITURE_RECONSTRUCTION"
 
 
 def prepare_attempt(args, assignment):
@@ -34,26 +36,40 @@ def engine_environment(args, path, output):
         DULLEOBANG_OUTPUT=str(output),
         PR2_REPO=str(args.pr2_repo),
     )
+    if args.furniture_engine is not None:
+        environment["DULLEOBANG_FURNITURE_ENGINE"] = str(args.furniture_engine)
     return environment
+
+
+def report_failure(client, job_type, error):
+    if client.lost.is_set():
+        return
+    failure = failure_for(error, job_type)
+    if failure is not None:
+        try:
+            client.fail(*failure)
+        except (httpx.HTTPError, RuntimeError, ValueError) as report_error:
+            print("Job failure callback rejected:", type(report_error).__name__, flush=True)
 
 
 def run_job(args, job_id, token):
     job_id = str(uuid.UUID(job_id))
     with WorkerClient(args.backend, token, args.worker_id) as client:
         assignment = client.claim(job_id)
-        directory, output, path = prepare_attempt(args, assignment)
+        path = None
         try:
+            directory, output, path = prepare_attempt(args, assignment)
             client.update_progress(5, "RECONSTRUCTING")
             run_engine(
                 engine_environment(args, path, output), directory / "engine.log", client.lost
             )
             publish(client, output)
-        except Exception:
-            if not client.lost.is_set():
-                client.fail("INTERNAL_ERROR", "PR #2 reconstruction or result publication failed")
+        except Exception as error:
+            report_failure(client, assignment["type"], error)
             raise
         finally:
-            path.unlink(missing_ok=True)
+            if path is not None:
+                path.unlink(missing_ok=True)
 
 
 def pending_jobs(args):
@@ -69,7 +85,9 @@ def pending_jobs(args):
 
 def process_queue(args):
     for job in pending_jobs(args):
-        if job["type"] not in SUPPORTED:
+        if job["type"] not in SUPPORTED and not (
+            job["type"] == FURNITURE_RECONSTRUCTION and args.furniture_engine is not None
+        ):
             continue
         try:
             run_job(args, job["jobId"], worker_token(args.secret_file, args.worker_id))
@@ -88,7 +106,16 @@ def arguments():
         "--pr2-repo", type=Path, default=Path("/mnt/cdata/dulleobang-worker/ai-poc")
     )
     parser.add_argument("--work-root", type=Path, default=Path("/data/indoor-ai-poc/backend-jobs"))
-    return parser.parse_args()
+    parser.add_argument(
+        "--furniture-engine", type=Path, help="Executable adapter for furniture captures"
+    )
+    args = parser.parse_args()
+    if args.furniture_engine is not None:
+        engine = args.furniture_engine.resolve()
+        if not engine.is_file() or not os.access(engine, os.X_OK):
+            parser.error("--furniture-engine must point to an executable file")
+        args.furniture_engine = engine
+    return args
 
 
 def main():

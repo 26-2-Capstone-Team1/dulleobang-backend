@@ -9810,6 +9810,10 @@
             "format": "uuid",
             "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
           },
+          "category": {
+            "$ref": "#/components/schemas/FurnitureCreate/properties/category",
+            "description": "가구 복원 시 등록된 v1 카테고리. 방 복원에는 포함되지 않습니다."
+          },
           "manifest": {
             "$ref": "#/components/schemas/DownloadGrant"
           },
@@ -10412,6 +10416,16 @@
           "input"
         ],
         "additionalProperties": false,
+        "if": {
+          "properties": {
+            "type": {"const": "FURNITURE_RECONSTRUCTION"}
+          }
+        },
+        "then": {
+          "properties": {
+            "input": {"required": ["category"]}
+          }
+        },
         "examples": [
           {
             "jobId": "00000000-0000-4000-8000-000000000050",
@@ -10422,6 +10436,7 @@
             "input": {
               "kind": "RECONSTRUCTION",
               "captureId": "00000000-0000-4000-8000-000000000040",
+              "category": "DESK",
               "manifest": {
                 "asset": {
                   "fileId": "00000000-0000-4000-8000-000000000313",
