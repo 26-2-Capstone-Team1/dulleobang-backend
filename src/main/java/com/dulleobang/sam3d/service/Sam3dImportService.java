@@ -43,6 +43,8 @@ public class Sam3dImportService {
 
   public StoredResponse save(UUID actor, String path, String key, JsonNode input, boolean mobile) {
     furniture.requireTenant(actor);
+    if (repository.blocksImport(actor, input.path("studioJobId").asText()))
+      throw new ApiException(404, "SAM3D_JOB_NOT_FOUND");
     String body = StrictJson.stringify(input);
     var replay = idempotency.lookup(actor.toString(), "POST", path, key, body);
     if (replay.isPresent()) return responses.refresh(replay.get());

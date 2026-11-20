@@ -19,6 +19,31 @@ public class Sam3dRepository {
     jdbc.queryForList("SELECT pg_advisory_xact_lock(hashtextextended(?,79213))", owner + ":" + job);
   }
 
+  public void registerJob(UUID owner, String job) {
+    jdbc.update(
+        "INSERT INTO sam3d_generation_jobs(studio_job_id,owner_id) VALUES (?,?)", job, owner);
+  }
+
+  public boolean ownsJob(UUID owner, String job) {
+    return Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS (SELECT 1 FROM sam3d_generation_jobs WHERE studio_job_id=? AND"
+                + " owner_id=?)",
+            Boolean.class,
+            job,
+            owner));
+  }
+
+  public boolean blocksImport(UUID owner, String job) {
+    return Boolean.TRUE.equals(
+        jdbc.queryForObject(
+            "SELECT EXISTS (SELECT 1 FROM sam3d_generation_jobs WHERE studio_job_id=?"
+                + " AND owner_id IS DISTINCT FROM ?)",
+            Boolean.class,
+            job,
+            owner));
+  }
+
   public Optional<Import> find(UUID owner, String job) {
     return jdbc
         .query(

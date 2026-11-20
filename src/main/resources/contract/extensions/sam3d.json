@@ -11,10 +11,41 @@
       "path": "/api/furniture/sam3d-imports",
       "audience": "extension",
       "operationId": "importSam3dFurniture"
+    },
+    {
+      "method": "POST",
+      "path": "/api/furniture/sam3d-jobs",
+      "audience": "extension",
+      "operationId": "createSam3dJob"
+    },
+    {
+      "method": "GET",
+      "path": "/api/furniture/sam3d-jobs/{studioJobId}",
+      "audience": "extension",
+      "operationId": "getSam3dJob"
     }
   ],
   "components": {
     "schemas": {
+      "Sam3dJobCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "image": {"type": "string", "pattern": "^data:image/png;base64,"},
+          "name": {"type": "string", "minLength": 1, "maxLength": 100},
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "width": {"type": "number", "minimum": 0.02, "maximum": 20},
+              "height": {"type": "number", "minimum": 0.02, "maximum": 20},
+              "depth": {"type": "number", "minimum": 0.02, "maximum": 20}
+            },
+            "required": ["width", "height", "depth"]
+          }
+        },
+        "required": ["image", "name", "dimensions"]
+      },
       "Sam3dImport": {
         "type": "object",
         "additionalProperties": false,

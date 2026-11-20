@@ -24,9 +24,10 @@ final class RateBuckets {
             "submitFurnitureCaptureZip",
             "createRoomState",
             "retryJob",
+            "createSam3dJob",
             "importSam3dFurniture")
         .contains(operation)) result.put("ai:" + actor, 10);
-    if (operation.equals("getJob"))
+    if (operation.equals("getJob") || operation.equals("getSam3dJob"))
       result.put(
           "poll:"
               + actor
