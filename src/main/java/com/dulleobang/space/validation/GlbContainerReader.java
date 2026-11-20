@@ -4,12 +4,11 @@ import com.dulleobang.common.exception.ApiException;
 import com.dulleobang.common.json.StrictJson;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.*;
-import java.util.*;
 
 final class GlbContainerReader {
   private GlbContainerReader() {}
 
-  static GlbDocument read(byte[] raw, boolean collision) {
+  static GlbDocument read(byte[] raw, boolean collision, boolean room) {
     var file = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
     require(
         raw.length >= 20
@@ -35,38 +34,16 @@ final class GlbContainerReader {
     require(doc.isObject() && doc.path("asset").path("version").asText().equals("2.0"));
     for (String key : new String[] {"animations", "skins"})
       require(doc.path(key).isMissingNode() || doc.path(key).isEmpty());
-    for (String key : new String[] {"extensionsUsed", "extensionsRequired"}) {
-      var values = doc.path(key);
-      require(values.isMissingNode() || values.isArray());
-      for (var value : values)
-        require(!collision && value.isTextual() && value.asText().equals("KHR_materials_unlit"));
-    }
-    Set<JsonNode> materials = Collections.newSetFromMap(new IdentityHashMap<>());
-    if (!collision) doc.path("materials").forEach(materials::add);
-    extensions(doc, materials);
+    GlbExtensions.validate(doc, collision, room);
     if (collision)
       for (String key : new String[] {"images", "textures", "samplers"})
         require(doc.path(key).isMissingNode() || doc.path(key).isEmpty());
     var buffers = doc.path("buffers");
-    require(buffers.isArray() && buffers.size() == 1 && !buffers.get(0).has("uri"));
+    require(buffers.isArray() && !buffers.isEmpty() && !buffers.get(0).has("uri"));
+    GlbMeshoptValidator.buffers(doc);
     long size = integer(buffers.get(0).path("byteLength"));
     require(size > 0 && size <= binary.remaining() && binary.remaining() <= size + 3);
     return new GlbDocument(doc, binary);
-  }
-
-  private static void extensions(JsonNode value, Set<JsonNode> materials) {
-    if (value.isObject()) {
-      if (value.has("extensions") && !value.path("extensions").isEmpty()) {
-        var extension = value.path("extensions");
-        require(
-            materials.contains(value)
-                && extension.isObject()
-                && extension.size() == 1
-                && extension.path("KHR_materials_unlit").isObject()
-                && extension.path("KHR_materials_unlit").isEmpty());
-      }
-      value.forEach(child -> extensions(child, materials));
-    } else if (value.isArray()) value.forEach(child -> extensions(child, materials));
   }
 
   static int integer(JsonNode node) {

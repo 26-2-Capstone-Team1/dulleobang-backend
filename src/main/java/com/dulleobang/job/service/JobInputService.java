@@ -6,6 +6,7 @@ import com.dulleobang.job.domain.JobRecord;
 import com.dulleobang.job.repository.JobInputRepository;
 import com.dulleobang.upload.repository.UploadRepository;
 import com.dulleobang.upload.service.SignedUrlService;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
 import org.springframework.stereotype.Service;
 
@@ -41,7 +42,9 @@ public class JobInputService {
   private Map<String, Object> removal(JobRecord job) {
     var result = new LinkedHashMap<String, Object>();
     result.putAll(inputs.removal(job.targetId()));
-    var source = inputs.sourceBundle(job.targetId());
+    var source = inputs.sourceBundle(job.targetId()).deepCopy();
+    if (source.path("meshSource") instanceof ObjectNode mesh)
+      mesh.remove(List.of("roomMobileAsset", "roomFallbackAsset"));
     result.put("kind", "REMOVAL");
     result.put("sourceBundle", source);
     if (source.has("meshSource")) {

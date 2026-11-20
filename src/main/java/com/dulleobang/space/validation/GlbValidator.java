@@ -10,8 +10,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class GlbValidator {
   public Set<String> validate(byte[] raw, boolean collision, JsonNode box) {
+    return validate(raw, collision, box, false);
+  }
+
+  public Set<String> validateRoom(byte[] raw) {
+    return validate(raw, false, null, true);
+  }
+
+  private Set<String> validate(byte[] raw, boolean collision, JsonNode box, boolean room) {
     try {
-      var file = GlbContainerReader.read(raw, collision);
+      var file = GlbContainerReader.read(raw, collision, room);
       var doc = file.json();
       var accessors = new GlbAccessorReader(file);
       require(doc.path("meshes").isArray() && !doc.path("meshes").isEmpty());

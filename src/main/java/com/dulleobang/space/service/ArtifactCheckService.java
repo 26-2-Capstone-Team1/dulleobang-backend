@@ -41,6 +41,11 @@ public class ArtifactCheckService {
   }
 
   public Set<String> asset(JobRecord job, JsonNode reference, String role, JsonNode expectedBox) {
+    return asset(job, reference, role, expectedBox, false);
+  }
+
+  private Set<String> asset(
+      JobRecord job, JsonNode reference, String role, JsonNode expectedBox, boolean room) {
     UUID id = UUID.fromString(reference.path("fileId").asText());
     var file = uploads.asset(id, true).orElseThrow(() -> new ApiException(422, "INVALID_ARTIFACT"));
     if (!jobs.belongs(id, job, role)) throw new ApiException(422, "INVALID_ARTIFACT");
@@ -56,7 +61,8 @@ public class ArtifactCheckService {
     } else if (role.equals("GEOMETRY")) {
       var value = StrictJson.parse(raw);
       contracts.validate("RoomGeometry", StrictJson.stringify(value));
-    } else nodes = glb.validate(raw, role.equals("COLLISION"), expectedBox);
+    } else if (room) nodes = glb.validateRoom(raw);
+    else nodes = glb.validate(raw, role.equals("COLLISION"), expectedBox);
     uploads.verified(id, null);
     return nodes;
   }
@@ -81,7 +87,10 @@ public class ArtifactCheckService {
   private void meshSource(JobRecord job, JsonNode bundle) {
     if (!bundle.has("meshSource")) return;
     var source = bundle.path("meshSource");
-    asset(job, source.path("roomAsset"), "SOURCE_MESH", null);
+    asset(job, source.path("roomAsset"), "SOURCE_MESH", null, true);
+    for (String variant : List.of("roomMobileAsset", "roomFallbackAsset")) {
+      if (source.has(variant)) asset(job, source.path(variant), "SOURCE_MESH", null, true);
+    }
     asset(job, source.path("roomCollisionAsset"), "SOURCE_MESH", null);
     var expected = new HashSet<String>();
     for (var object : bundle.path("objects"))

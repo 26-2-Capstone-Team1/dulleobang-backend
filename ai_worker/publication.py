@@ -64,6 +64,9 @@ def bind_assets(result, refs):
     )
     source = bundle["meshSource"]
     source.update(roomAsset=refs["room"], roomCollisionAsset=refs["room-collision"])
+    for key, field in (("room-mobile", "roomMobileAsset"), ("room-fallback", "roomFallbackAsset")):
+        if key in refs:
+            source[field] = refs[key]
     for item in source["objectAssets"]:
         item["asset"] = refs["object:" + item["objectId"]]
 

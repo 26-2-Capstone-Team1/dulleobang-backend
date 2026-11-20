@@ -32,3 +32,11 @@ Windows에서는 `gradlew.bat bootJar --no-daemon`을 실행합니다. 생성된
 | `SAM3D_ENABLED`, `SAM3D_URL` | 온라인 가구 가져오기를 사용할 때 `true`와 SAM3D 서비스 주소 |
 
 `.env.example`의 값을 환경변수로 전달합니다. VM 서비스는 `/etc/dulleobang/backend.env`를 읽습니다. 시작 후 `/health/live`와 `/health/ready`에서 상태를 확인합니다.
+
+## 방 메시 응답
+
+`GET /api/listings/{id}/space`는 기존 `meshUri`로 고해상도 방 GLB를 반환합니다. 파일이 등록된 경우 폰 기본용 `meshMobileUri`와 호환용 `meshFallbackUri`를 추가로 반환합니다. 세 URL은 모두 서명된 GLB URL이며 HTTP 응답의 `Content-Type`은 `model/gltf-binary`입니다.
+
+완료 결과의 `meshSource.roomAsset`에는 기존 방 파일을 넣고, 추가 파일은 `roomMobileAsset`과 `roomFallbackAsset`에 넣습니다. 워커 출력은 두 파일을 `SOURCE_MESH` 역할로 등록하고 각각 `room-mobile`과 `room-fallback` 키를 사용합니다.
+
+방 GLB에만 `KHR_texture_basisu`와 `EXT_meshopt_compression`을 허용합니다. KTX2는 GLB에 내장합니다. 가구와 충돌 GLB에는 기존 압축 규칙을 적용합니다.

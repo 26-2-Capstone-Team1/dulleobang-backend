@@ -19,7 +19,7 @@ final class Pr2Extensions {
     append(schemas, "ArtifactInput", "format", "POINT_CLOUD_PLY_V1");
     append(schemas, "ArtifactInput", "role", "SOURCE_MESH");
     ((ObjectNode) schemas.path("ArtifactCreate").path("properties").path("files"))
-        .put("maxItems", 505);
+        .put("maxItems", 507);
     ((ObjectNode) schemas.path("SpaceBundle").path("properties"))
         .putObject("meshSource")
         .put("$ref", "#/components/schemas/Pr2MeshSource");

@@ -13177,7 +13177,17 @@
           "meshUri": {
             "type": "string",
             "format": "uri",
-            "description": "Signed URL to the original room GLB when a mesh is available."
+            "description": "Signed URL to the original high-resolution room GLB when available. Existing clients can continue using this field."
+          },
+          "meshMobileUri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional signed URL to the mobile room GLB, which may use KTX2 or meshopt."
+          },
+          "meshFallbackUri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional signed URL to the lightweight compatibility room GLB."
           },
           "collisionGeometryUri": {
             "type": "string"

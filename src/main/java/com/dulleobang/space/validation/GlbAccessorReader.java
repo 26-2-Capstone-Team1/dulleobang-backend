@@ -19,16 +19,7 @@ final class GlbAccessorReader {
     accessors = document.json().path("accessors");
     views = document.json().path("bufferViews");
     binary = document.binary();
-    long bufferSize = integer(document.json().path("buffers").get(0).path("byteLength"));
-    for (var view : views) {
-      long offset = view.has("byteOffset") ? integer(view.get("byteOffset")) : 0,
-          size = integer(view.path("byteLength"));
-      require(
-          (!view.has("buffer") || integer(view.get("buffer")) == 0)
-              && offset >= 0
-              && size > 0
-              && offset + size <= bufferSize);
-    }
+    for (var view : views) GlbMeshoptValidator.view(view, document.json().path("buffers"), document);
     for (var a : accessors) {
       require(!a.has("sparse"));
       int count = integer(a.path("count")), component = integer(a.path("componentType"));
@@ -43,7 +34,7 @@ final class GlbAccessorReader {
               && offset >= 0
               && (long) offset + (long) (count - 1) * stride + size
                   <= integer(view.path("byteLength")));
-      if (component == 5126)
+      if (component == 5126 && GlbMeshoptValidator.buffer(view) == 0)
         for (int n = 0; n < count; n++)
           for (int c = 0; c < TYPES.get(a.path("type").asText()); c++)
             require(Float.isFinite(binary.getFloat(start(a) + (n * stride) + c * 4)));
@@ -52,6 +43,10 @@ final class GlbAccessorReader {
 
   JsonNode get(JsonNode id) {
     return accessors.get(index(id, accessors));
+  }
+
+  private boolean hasStoredBytes(JsonNode a) {
+    return GlbMeshoptValidator.buffer(views.get(index(a.path("bufferView"), views))) == 0;
   }
 
   int start(JsonNode a) {
@@ -78,11 +73,21 @@ final class GlbAccessorReader {
   }
 
   void positionBounds(JsonNode a) {
+    require(a.path("type").asText().equals("VEC3") && integer(a.path("componentType")) == 5126);
     require(
         a.path("min").isArray()
             && a.path("min").size() == 3
             && a.path("max").isArray()
             && a.path("max").size() == 3);
+    if (!hasStoredBytes(a)) {
+      for (int n = 0; n < 3; n++) {
+        var min = a.path("min").get(n);
+        var max = a.path("max").get(n);
+        require(min.isNumber() && max.isNumber() && Double.isFinite(min.asDouble())
+            && Double.isFinite(max.asDouble()) && min.asDouble() <= max.asDouble());
+      }
+      return;
+    }
     double[] min = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},
         max = {-Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE};
     positions(
@@ -104,6 +109,7 @@ final class GlbAccessorReader {
   void indices(JsonNode a, int vertexCount) {
     int type = integer(a.path("componentType"));
     require(a.path("type").asText().equals("SCALAR") && Set.of(5121, 5123, 5125).contains(type));
+    if (!hasStoredBytes(a)) return;
     for (int n = 0; n < integer(a.path("count")); n++) {
       int p = start(a) + n * stride(a);
       long value =

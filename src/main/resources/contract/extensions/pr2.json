@@ -5,6 +5,8 @@
       "type":"object", "additionalProperties":false,
       "properties": {
         "roomAsset":{"$ref":"#/components/schemas/AssetRef"},
+        "roomMobileAsset":{"$ref":"#/components/schemas/AssetRef"},
+        "roomFallbackAsset":{"$ref":"#/components/schemas/AssetRef"},
         "roomCollisionAsset":{"$ref":"#/components/schemas/AssetRef"},
         "objectAssets":{"type":"array","maxItems":500,"items":{
           "type":"object","additionalProperties":false,

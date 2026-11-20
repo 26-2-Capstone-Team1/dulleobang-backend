@@ -27,8 +27,9 @@ public final class MobileSpaceMapper {
       result.put("glass", meshSource.path("glass"));
     }
     if (space) {
-      String roomUri = assetUri(meshSource.path("roomAsset"));
-      if (roomUri != null) result.put("meshUri", roomUri);
+      putAssetUri(result, "meshUri", meshSource.path("roomAsset"));
+      putAssetUri(result, "meshMobileUri", meshSource.path("roomMobileAsset"));
+      putAssetUri(result, "meshFallbackUri", meshSource.path("roomFallbackAsset"));
       result.put("objects", objects(bundle.path("objects"), objectModelUris(meshSource)));
     } else {
       result.put("remainingObjects", objects(bundle.path("objects")));
@@ -43,6 +44,11 @@ public final class MobileSpaceMapper {
       if (uri != null) uris.put(entry.path("objectId").asText(), uri);
     }
     return uris;
+  }
+
+  private static void putAssetUri(Map<String, Object> result, String field, JsonNode asset) {
+    String uri = assetUri(asset);
+    if (uri != null) result.put(field, uri);
   }
 
   private static String assetUri(JsonNode asset) {

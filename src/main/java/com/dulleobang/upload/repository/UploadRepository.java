@@ -188,7 +188,9 @@ public class UploadRepository {
                 + " l.deleted_at IS NULL) OR EXISTS(SELECT 1 FROM spaces s JOIN listings l ON"
                 + " l.listing_id=s.listing_id WHERE l.status='PUBLISHED' AND l.deleted_at IS NULL"
                 + " AND (?::text IN"
-                + " (s.bundle->'sceneAsset'->>'fileId',s.bundle->'geometryAsset'->>'fileId',s.bundle->'collisionAsset'->>'fileId',s.bundle->'meshSource'->'roomAsset'->>'fileId')"
+                + " (s.bundle->'sceneAsset'->>'fileId',s.bundle->'geometryAsset'->>'fileId',s.bundle->'collisionAsset'->>'fileId',"
+                + " s.bundle->'meshSource'->'roomAsset'->>'fileId',s.bundle->'meshSource'->'roomMobileAsset'->>'fileId',"
+                + " s.bundle->'meshSource'->'roomFallbackAsset'->>'fileId')"
                 + " OR EXISTS(SELECT 1 FROM"
                 + " jsonb_array_elements(COALESCE(s.bundle->'meshSource'->'objectAssets','[]'::jsonb))"
                 + " m WHERE m->'asset'->>'fileId'=?::text)))",
