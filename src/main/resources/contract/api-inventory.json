@@ -2,12 +2,12 @@
   "baselineDate": "2026-10-16",
   "source": "C:\\Users\\kimyoonjae\\Desktop\\캡스톤\\code\\dulleobang-backend",
   "countingRule": "HTTP method + registered path, excluding HEAD/OPTIONS and documentation routes",
-  "apiOperationCount": 105,
+  "apiOperationCount": 106,
   "counts": {
     "health": 2,
     "v1": 64,
     "storage": 2,
-    "mobile": 41
+    "mobile": 42
   },
   "routes": [
     {
@@ -610,6 +610,13 @@
       "path": "/api/room-states/{roomStateId}",
       "audience": "mobile",
       "operationId": "deleteRoomState",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/assets/{fileId}/download",
+      "audience": "mobile",
+      "operationId": "getAssetDownload",
       "includedInOpenApi": false
     },
     {

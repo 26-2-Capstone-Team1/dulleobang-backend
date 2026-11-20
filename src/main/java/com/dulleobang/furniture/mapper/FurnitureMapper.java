@@ -23,6 +23,8 @@ public final class FurnitureMapper {
       result.put(
           "collisionMeshUri",
           model == null ? null : model.path("collisionAsset").path("url").asText(null));
+      // SAM3D models without quality metadata keep their original URI-only representation.
+      if (model != null && model.hasNonNull("quality")) result.put("model", model);
     } else {
       result.put("ownerId", item.owner());
       result.put("measuredDimensions", item.measuredDimensions());

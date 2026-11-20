@@ -13,7 +13,7 @@ public class AssetController {
     this.uploads = uploads;
   }
 
-  @GetMapping("/api/v1/assets/{id}/download")
+  @GetMapping({"/api/v1/assets/{id}/download", "/api/assets/{id}/download"})
   public Map<String, Object> download(Principal actor, @PathVariable UUID id) {
     return uploads.download(UUID.fromString(actor.getName()), id);
   }

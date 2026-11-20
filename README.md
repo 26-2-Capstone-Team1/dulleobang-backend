@@ -63,3 +63,7 @@ uv run --no-project --with-requirements app/requirements.txt \
 | `POST /furniture/from-catalog` | `Idempotency-Key`에 요청별 UUID, 본문에 `catalogId`와 선택 `name`을 보내면 모델 버전 1인 `READY` 가구를 반환합니다(201). |
 
 모두 로그인해야 하며, 개인 가구 등록에는 기존과 같이 `TENANT` 역할이 필요합니다. 수납 가구는 현행 `SHELF` 카테고리를 유지합니다. 모바일 `/api` 경로도 제공하며 등록 결과의 상태·모델 URL은 기존 모바일 가구 응답과 같습니다.
+
+모바일 내 가구 응답은 기존 `modelUri`, `dimensions`, `boundingBox`, `collisionMeshUri`를 유지합니다. 카탈로그에서 등록한 가구처럼 전체 모델 정보가 있으면 `model`도 반환합니다.
+
+파일 URL이 없거나 만료되면 파일 참조(`model.modelAsset`, `model.collisionAsset`, `thumbnail`)의 `fileId`로 `GET /api/assets/{fileId}/download`(또는 `/api/v1/assets/{fileId}/download`)를 호출합니다. 이 요청에는 로그인 토큰을 붙이고, 응답으로 받은 15분 유효 서명 URL에는 붙이지 않습니다. `BASE_URL`은 `/api` 접미사 없이 앱에서 접근할 수 있는 서버 주소로 설정합니다.

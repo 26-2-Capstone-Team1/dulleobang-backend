@@ -1502,6 +1502,28 @@
         }
       }
     },
+    "/api/assets/{fileId}/download": {
+      "get": {
+        "operationId": "getAssetDownload",
+        "summary": "파일의 서명 다운로드 주소 갱신",
+        "description": "로그인 필요. 소유한 파일, 공개 매물 파일 또는 카탈로그 파일의 서명 URL을 반환합니다.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "fileId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "15분 유효한 다운로드 주소",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DownloadGrant"}}}
+          },
+          "400": {"$ref": "#/components/responses/Error400"},
+          "401": {"$ref": "#/components/responses/Error401"},
+          "404": {"$ref": "#/components/responses/Error404"},
+          "429": {"$ref": "#/components/responses/Error429"},
+          "503": {"$ref": "#/components/responses/Error503"}
+        }
+      }
+    },
     "/api/catalog/furniture": {
       "get": {
         "operationId": "getCatalogFurniture",
@@ -13187,6 +13209,10 @@
               "string",
               "null"
             ]
+          },
+          "model": {
+            "$ref": "#/components/schemas/FurnitureModel",
+            "description": "완전한 모델 정보가 있는 경우 제공. 기존 modelUri와 dimensions도 계속 제공."
           }
         },
         "required": [
