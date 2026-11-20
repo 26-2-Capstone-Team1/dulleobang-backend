@@ -1,6 +1,7 @@
 package com.dulleobang.upload.service;
 
 import com.dulleobang.common.exception.ApiException;
+import com.dulleobang.upload.domain.AssetFile;
 import com.dulleobang.upload.repository.UploadRepository;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -17,8 +18,11 @@ public class AssetPresentationService {
 
   /** Call only after the containing resource's access policy has succeeded. */
   public Map<String, Object> present(UUID id) {
-    var file =
-        repository.asset(id, false).orElseThrow(() -> new ApiException(404, "RESOURCE_NOT_FOUND"));
+    return present(
+        repository.asset(id, false).orElseThrow(() -> new ApiException(404, "RESOURCE_NOT_FOUND")));
+  }
+
+  public Map<String, Object> present(AssetFile file) {
     if (!file.verified() || !file.stored()) throw new ApiException(404, "RESOURCE_NOT_FOUND");
     var grant = signatures.grant(file, "GET");
     var output = new LinkedHashMap<>(signatures.asset(file));

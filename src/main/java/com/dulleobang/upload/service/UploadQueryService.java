@@ -56,9 +56,11 @@ public class UploadQueryService {
     var file =
         repository.asset(id, false).orElseThrow(() -> new ApiException(404, "RESOURCE_NOT_FOUND"));
     access.live(file.targetType(), file.targetId());
-    if ((!file.owner().equals(actor) && !repository.publicAsset(id))
-        || !file.verified()
-        || !file.stored()) throw new ApiException(404, "RESOURCE_NOT_FOUND");
+    if (!file.verified()
+        || !file.stored()
+        || (!file.purpose().equals("CATALOG")
+            && !actor.equals(file.owner())
+            && !repository.publicAsset(id))) throw new ApiException(404, "RESOURCE_NOT_FOUND");
     return signatures.grant(file, "GET");
   }
 }

@@ -2,12 +2,12 @@
   "baselineDate": "2026-10-16",
   "source": "C:\\Users\\kimyoonjae\\Desktop\\캡스톤\\code\\dulleobang-backend",
   "countingRule": "HTTP method + registered path, excluding HEAD/OPTIONS and documentation routes",
-  "apiOperationCount": 99,
+  "apiOperationCount": 105,
   "counts": {
     "health": 2,
-    "v1": 61,
+    "v1": 64,
     "storage": 2,
-    "mobile": 38
+    "mobile": 41
   },
   "routes": [
     {
@@ -246,6 +246,27 @@
       "path": "/api/v1/room-states/{roomStateId}",
       "audience": "v1",
       "operationId": "deleteRoomState",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/catalog/furniture",
+      "audience": "v1",
+      "operationId": "getCatalogFurniture",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/catalog/furniture/{catalogId}",
+      "audience": "v1",
+      "operationId": "getCatalogItem",
+      "includedInOpenApi": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/furniture/from-catalog",
+      "audience": "v1",
+      "operationId": "createFurnitureFromCatalog",
       "includedInOpenApi": true
     },
     {
@@ -589,6 +610,27 @@
       "path": "/api/room-states/{roomStateId}",
       "audience": "mobile",
       "operationId": "deleteRoomState",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/catalog/furniture",
+      "audience": "mobile",
+      "operationId": "getCatalogFurniture",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/catalog/furniture/{catalogId}",
+      "audience": "mobile",
+      "operationId": "getCatalogItem",
+      "includedInOpenApi": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/furniture/from-catalog",
+      "audience": "mobile",
+      "operationId": "createFurnitureFromCatalog",
       "includedInOpenApi": false
     },
     {

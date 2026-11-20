@@ -14,20 +14,21 @@ public class UploadRepository {
   }
 
   static String targetType(java.sql.ResultSet rs) throws java.sql.SQLException {
-    return rs.getObject("furniture_id") != null
-        ? "FURNITURE"
-        : rs.getObject("listing_id") != null
-            ? "LISTING"
-            : rs.getObject("target_user_id") != null ? "USER" : "ROOM_STATE";
+    if (rs.getObject("furniture_id") != null) return "FURNITURE";
+    if (rs.getObject("listing_id") != null) return "LISTING";
+    if (rs.getObject("target_user_id") != null) return "USER";
+    return rs.getObject("catalog_item_id") != null ? "CATALOG" : "ROOM_STATE";
   }
 
   static UUID targetId(java.sql.ResultSet rs) throws java.sql.SQLException {
     return rs.getObject(
-        targetType(rs).equals("FURNITURE")
-            ? "furniture_id"
-            : targetType(rs).equals("LISTING")
-                ? "listing_id"
-                : targetType(rs).equals("USER") ? "target_user_id" : "room_state_id",
+        switch (targetType(rs)) {
+          case "FURNITURE" -> "furniture_id";
+          case "LISTING" -> "listing_id";
+          case "USER" -> "target_user_id";
+          case "CATALOG" -> "catalog_item_id";
+          default -> "room_state_id";
+        },
         UUID.class);
   }
 
@@ -101,8 +102,8 @@ public class UploadRepository {
   public void add(AssetFile f) {
     jdbc.update(
         "INSERT INTO"
-            + " assets(file_id,owner_id,session_id,furniture_id,listing_id,target_user_id,room_state_id,purpose,client_file_id,file_name,content_type,byte_size,sha256,format,role,ordinal,stored,verified,created_at)"
-            + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            + " assets(file_id,owner_id,session_id,furniture_id,listing_id,target_user_id,room_state_id,catalog_item_id,purpose,client_file_id,file_name,content_type,byte_size,sha256,format,role,ordinal,stored,verified,created_at)"
+            + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         f.id(),
         f.owner(),
         f.session(),
@@ -110,6 +111,7 @@ public class UploadRepository {
         target(f.targetType(), "LISTING", f.targetId()),
         target(f.targetType(), "USER", f.targetId()),
         target(f.targetType(), "ROOM_STATE", f.targetId()),
+        target(f.targetType(), "CATALOG", f.targetId()),
         f.purpose(),
         f.clientId(),
         f.name(),

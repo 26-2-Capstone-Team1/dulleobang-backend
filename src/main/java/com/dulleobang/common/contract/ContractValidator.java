@@ -8,6 +8,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import java.nio.charset.StandardCharsets;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -16,12 +17,20 @@ public class ContractValidator {
   private final JsonNode spec;
   private final JsonNode mobile;
   private final JsonNode sam3d;
+  private final JsonNode responseSpec;
 
-  public ContractValidator() throws Exception {
+  public ContractValidator(@Value("${BASE_URL:http://127.0.0.1:8081}") String baseUrl)
+      throws Exception {
     try (var in = new ClassPathResource("contract/v1/openapi.json").getInputStream()) {
       spec = StrictJson.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8));
       Pr2Extensions.apply(spec);
     }
+    if (baseUrl.startsWith("http://")) {
+      // Signed storage URLs use BASE_URL. Keep the v1 request schema unchanged.
+      responseSpec = spec.deepCopy();
+      ((ObjectNode) responseSpec.at("/components/schemas/AssetRef/properties/url"))
+          .put("pattern", "^http://");
+    } else responseSpec = spec;
     try (var in = new ClassPathResource("contract/mobile-openapi.json").getInputStream()) {
       mobile = StrictJson.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8));
       Pr2Extensions.apply(mobile);
@@ -37,6 +46,14 @@ public class ContractValidator {
 
   public void validateMobile(String name, String body) {
     validateFrom(mobile, name, body);
+  }
+
+  public void validateResponse(String name, String body, boolean isMobile) {
+    try {
+      validateFrom(isMobile ? mobile : responseSpec, name, body);
+    } catch (ApiException ex) {
+      throw new IllegalStateException("Invalid response for " + name, ex);
+    }
   }
 
   private void validateFrom(JsonNode document, String name, String body) {

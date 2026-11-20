@@ -60,7 +60,7 @@ public class AgentVerificationService {
         uploads
             .asset(UUID.fromString(input.path("documentFileId").asText()), false)
             .orElseThrow(() -> new ApiException(404, "RESOURCE_NOT_FOUND"));
-    if (!file.owner().equals(actor)) throw new ApiException(404, "RESOURCE_NOT_FOUND");
+    if (!actor.equals(file.owner())) throw new ApiException(404, "RESOURCE_NOT_FOUND");
     if (!file.purpose().equals("LISTING_AGENT_DOCUMENT")
         || !file.targetType().equals("USER")
         || !file.targetId().equals(actor)

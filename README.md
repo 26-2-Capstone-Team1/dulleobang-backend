@@ -40,3 +40,26 @@ Windows에서는 `gradlew.bat bootJar --no-daemon`을 실행합니다. 생성된
 완료 결과의 `meshSource.roomAsset`에는 기존 방 파일을 넣고, 추가 파일은 `roomMobileAsset`과 `roomFallbackAsset`에 넣습니다. 워커 출력은 두 파일을 `SOURCE_MESH` 역할로 등록하고 각각 `room-mobile`과 `room-fallback` 키를 사용합니다.
 
 방 GLB에만 `KHR_texture_basisu`와 `EXT_meshopt_compression`을 허용합니다. KTX2는 GLB에 내장합니다. 가구와 충돌 GLB에는 기존 압축 규칙을 적용합니다.
+
+## IKEA 가구 카탈로그
+
+백엔드 JAR를 빌드한 뒤, 서버와 같은 DB 설정·서명 키·`V2_DATA_DIR`를 사용하는 환경에서 가져옵니다. 가져오기 명령만 Python 3.10 이상과 `app/requirements.txt`의 `google-cloud-storage`를 사용합니다. Google Cloud 기본 사용자 인증 정보(ADC)로 버킷을 읽으므로 실행 서비스 계정에 대상 버킷의 **Storage Object Viewer**(`roles/storage.objectViewer`) 권한이 필요합니다.
+
+```bash
+uv run --no-project --with-requirements app/requirements.txt \
+  python -m app.cli import-catalog --bucket dulleobang-capstone-files --prefix ikea/v1
+```
+
+빌드 폴더 밖의 JAR를 사용하면 `--jar /path/to/backend.jar` 또는 `DULLEOBANG_JAR`로 지정합니다. 명령은 내려받은 파일을 임시 디렉터리에 두고 Spring Boot의 오프라인 관리 명령으로 가져옵니다. HTTP 서버를 열지 않습니다.
+
+- `index.json`: 품번 문자열 배열(예: `["00123456"]`) 또는 `items`/`articles` 배열을 가진 객체. 배열 항목을 `{ "article": "00123456" }`로 써도 됩니다. 앞의 0이 보존되도록 품번은 문자열로 둡니다.
+- `<article>/meta.json`: `name`, `category`, `dimensions`, `boundingBox`, `quality`, `sourceUrl`과 `sha256`(파일명 → 해시)을 포함합니다. `files` 안에 파일명별 `{"sha256": "…"}`을 넣은 형식도 읽습니다. 치수·경계 상자·품질은 기존 `FurnitureModel` 형식입니다.
+- `<article>/model.glb`, `<article>/collision.glb`, `<article>/photo.jpg`: 원본의 SHA-256을 모두 대조한 뒤 두 GLB와 바닥 중심 경계 상자를 검증합니다. 실패한 항목은 게시하지 않고 명령이 중단됩니다. 다시 실행하면 이미 가져온 품번은 갱신되고, 같은 해시의 파일은 중복 저장되지 않습니다. 원본이 바뀌어도 이미 등록한 개인 가구의 모델은 유지됩니다.
+
+| API (`/api/v1` 기준) | 동작 |
+|---|---|
+| `GET /catalog/furniture` | 이름·품번 `q`, `category`, `cursor`, `limit`으로 조회. 목록에는 썸네일만 포함합니다. |
+| `GET /catalog/furniture/{catalogId}` | 해당 항목에 서명된 두 GLB URL이 든 `model`을 포함합니다. |
+| `POST /furniture/from-catalog` | `Idempotency-Key`에 요청별 UUID, 본문에 `catalogId`와 선택 `name`을 보내면 모델 버전 1인 `READY` 가구를 반환합니다(201). |
+
+모두 로그인해야 하며, 개인 가구 등록에는 기존과 같이 `TENANT` 역할이 필요합니다. 수납 가구는 현행 `SHELF` 카테고리를 유지합니다. 모바일 `/api` 경로도 제공하며 등록 결과의 상태·모델 URL은 기존 모바일 가구 응답과 같습니다.

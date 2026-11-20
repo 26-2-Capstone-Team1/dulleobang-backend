@@ -30,11 +30,7 @@ public class SpaceResultRepository {
   }
 
   public void model(UUID id, int version, JsonNode model, Instant now) {
-    jdbc.update(
-        "INSERT INTO furniture_models VALUES(?,?,?::jsonb)",
-        id,
-        version,
-        StrictJson.stringify(model));
+    insertModel(id, version, model);
     jdbc.update(
         "UPDATE furniture SET"
             + " current_model_version=?,resource_version=resource_version+1,updated_at=? WHERE"
@@ -43,6 +39,21 @@ public class SpaceResultRepository {
         java.sql.Timestamp.from(now),
         id);
     invalidate(null, id);
+  }
+
+  /** Publish a model in the same transaction that creates the furniture. */
+  public void initialModel(UUID id, JsonNode model) {
+    insertModel(id, 1, model);
+    jdbc.update(
+        "UPDATE furniture SET current_model_version=1,status='READY' WHERE furniture_id=?", id);
+  }
+
+  private void insertModel(UUID id, int version, JsonNode model) {
+    jdbc.update(
+        "INSERT INTO furniture_models VALUES(?,?,?::jsonb)",
+        id,
+        version,
+        StrictJson.stringify(model));
   }
 
   public void space(UUID id, int version, JsonNode bundle, Instant now) {

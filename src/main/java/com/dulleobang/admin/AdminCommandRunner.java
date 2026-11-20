@@ -1,8 +1,12 @@
 package com.dulleobang.admin;
 
 import com.dulleobang.admin.service.*;
+import com.dulleobang.catalog.service.CatalogImportService;
 import com.dulleobang.common.json.StrictJson;
 import com.dulleobang.job.service.JobMaintenanceService;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.UUID;
 import org.springframework.boot.*;
@@ -18,21 +22,24 @@ public class AdminCommandRunner implements ApplicationRunner {
   private final WorkerTokenService workers;
   private final AdminQueryService queries;
   private final JobMaintenanceService maintenance;
+  private final CatalogImportService catalog;
 
   public AdminCommandRunner(
       AdminReviewService reviews,
       Environment environment,
       WorkerTokenService workers,
       AdminQueryService queries,
-      JobMaintenanceService maintenance) {
+      JobMaintenanceService maintenance,
+      CatalogImportService catalog) {
     this.reviews = reviews;
     this.environment = environment;
     this.workers = workers;
     this.queries = queries;
     this.maintenance = maintenance;
+    this.catalog = catalog;
   }
 
-  public void run(ApplicationArguments args) {
+  public void run(ApplicationArguments args) throws IOException {
     String command = environment.getRequiredProperty("dulleobang.admin.command");
     switch (command) {
       case "review-agent", "review-report" -> review(command);
@@ -55,7 +62,23 @@ public class AdminCommandRunner implements ApplicationRunner {
         System.out.println("Maintenance completed.");
       }
       case "init" -> System.out.println("PostgreSQL migrations validated.");
+      case "import-catalog" -> importCatalog();
       default -> throw new IllegalArgumentException("Unknown admin command");
+    }
+  }
+
+  private void importCatalog() throws IOException {
+    var root = Path.of(environment.getRequiredProperty("dulleobang.admin.catalog-directory"));
+    try (var entries = Files.list(root)) {
+      for (var directory : entries.filter(Files::isDirectory).sorted().toList()) {
+        try {
+          catalog.importItem(directory);
+          System.out.println("Imported catalog article " + directory.getFileName());
+        } catch (RuntimeException | IOException ex) {
+          throw new IllegalArgumentException(
+              "Catalog article " + directory.getFileName() + ": " + ex.getMessage(), ex);
+        }
+      }
     }
   }
 

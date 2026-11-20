@@ -4793,6 +4793,98 @@
         ]
       }
     },
+    "/catalog/furniture": {
+      "get": {
+        "operationId": "getCatalogFurniture",
+        "summary": "가구 카탈로그 목록",
+        "tags": ["가구"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["BED", "SOFA", "DESK", "TABLE", "CHAIR", "WARDROBE", "SHELF", "REFRIGERATOR", "WASHING_MACHINE", "AIR_CONDITIONER", "TV", "OTHER"]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "이름 또는 품번의 일부. 대소문자 구분 없음.",
+            "schema": {"type": "string", "maxLength": 80}
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {"type": "string", "minLength": 1, "maxLength": 2048}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {"type": "integer", "minimum": 1, "maximum": 50, "default": 20}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "모델을 제외한 카탈로그 항목과 페이지 정보",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CatalogPage"}}}
+          },
+          "400": {"$ref": "#/components/responses/Error400"},
+          "401": {"$ref": "#/components/responses/Error401"}
+        }
+      }
+    },
+    "/catalog/furniture/{catalogId}": {
+      "get": {
+        "operationId": "getCatalogItem",
+        "summary": "가구 카탈로그 상세 및 모델",
+        "tags": ["가구"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "catalogId", "in": "path", "required": true, "schema": {"$ref": "#/components/schemas/CatalogId"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "모델을 포함한 카탈로그 항목",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CatalogItemDetail"}}}
+          },
+          "401": {"$ref": "#/components/responses/Error401"},
+          "404": {"$ref": "#/components/responses/Error404"}
+        }
+      }
+    },
+    "/furniture/from-catalog": {
+      "post": {
+        "operationId": "createFurnitureFromCatalog",
+        "summary": "카탈로그에서 내 가구 등록",
+        "description": "권한: TENANT. 촬영이나 AI 작업 없이 READY 상태, 모델 버전 1로 생성합니다.",
+        "tags": ["가구"],
+        "security": [{"bearerAuth": []}],
+        "x-authorization": "TENANT",
+        "parameters": [
+          {"name": "Idempotency-Key", "in": "header", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CatalogFurnitureCreate"}}}
+        },
+        "responses": {
+          "201": {
+            "description": "내 가구 등록 성공",
+            "headers": {"Location": {"schema": {"type": "string"}}, "ETag": {"schema": {"type": "string"}}},
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Furniture"}}}
+          },
+          "400": {"$ref": "#/components/responses/Error400"},
+          "401": {"$ref": "#/components/responses/Error401"},
+          "403": {"$ref": "#/components/responses/Error403"},
+          "404": {"$ref": "#/components/responses/Error404"},
+          "409": {"$ref": "#/components/responses/Error409"},
+          "415": {"$ref": "#/components/responses/Error415"},
+          "422": {"$ref": "#/components/responses/Error422"}
+        }
+      }
+    },
     "/furniture": {
       "post": {
         "operationId": "createFurniture",
@@ -13730,6 +13822,56 @@
             }
           }
         ]
+      },
+      "CatalogId": {
+        "type": "string",
+        "pattern": "^ikea-[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"
+      },
+      "CatalogSourceUrl": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https?://[^/?#\\s]+",
+        "maxLength": 2048
+      },
+      "CatalogItem": {
+        "type": "object",
+        "properties": {
+          "catalogId": {"$ref": "#/components/schemas/CatalogId"},
+          "brand": {"const": "IKEA"},
+          "article": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"},
+          "name": {"$ref": "#/components/schemas/FurnitureCreate/properties/name"},
+          "category": {"$ref": "#/components/schemas/FurnitureCreate/properties/category"},
+          "dimensions": {"$ref": "#/components/schemas/Dimensions"},
+          "thumbnail": {"$ref": "#/components/schemas/AssetRef"},
+          "sourceUrl": {"$ref": "#/components/schemas/CatalogSourceUrl"},
+          "model": {"$ref": "#/components/schemas/FurnitureModel"}
+        },
+        "required": ["catalogId", "brand", "article", "name", "category", "dimensions", "thumbnail", "sourceUrl"],
+        "additionalProperties": false
+      },
+      "CatalogItemDetail": {
+        "allOf": [
+          {"$ref": "#/components/schemas/CatalogItem"},
+          {"required": ["model"]}
+        ]
+      },
+      "CatalogPage": {
+        "type": "object",
+        "properties": {
+          "items": {"type": "array", "items": {"$ref": "#/components/schemas/CatalogItem", "not": {"required": ["model"]}}},
+          "page": {"$ref": "#/components/schemas/PageInfo"}
+        },
+        "required": ["items", "page"],
+        "additionalProperties": false
+      },
+      "CatalogFurnitureCreate": {
+        "type": "object",
+        "properties": {
+          "catalogId": {"$ref": "#/components/schemas/CatalogId"},
+          "name": {"$ref": "#/components/schemas/FurnitureCreate/properties/name"}
+        },
+        "required": ["catalogId"],
+        "additionalProperties": false
       },
       "FurnitureCreate": {
         "type": "object",

@@ -82,7 +82,7 @@ public class ListingCommandService {
             uploads
                 .asset(fileId, false)
                 .orElseThrow(() -> new ApiException(404, "RESOURCE_NOT_FOUND"));
-        if (!file.owner().equals(actor)) throw new ApiException(404, "RESOURCE_NOT_FOUND");
+        if (!actor.equals(file.owner())) throw new ApiException(404, "RESOURCE_NOT_FOUND");
         if (!file.targetId().equals(id)
             || !file.purpose().equals("LISTING_PHOTO")
             || !file.verified()
