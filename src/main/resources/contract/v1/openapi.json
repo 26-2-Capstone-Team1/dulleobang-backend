@@ -15358,7 +15358,17 @@
           },
           "category": {
             "$ref": "#/components/schemas/FurnitureCreate/properties/category",
-            "description": "가구 복원 시 등록된 v1 카테고리. 방 복원에는 포함되지 않습니다."
+            "description": "기존 워커 호환용. furniture.category와 같은 값입니다."
+          },
+          "furniture": {
+            "type": "object",
+            "description": "가구 복원 대상의 등록 이름과 v1 카테고리.",
+            "properties": {
+              "name": {"$ref": "#/components/schemas/FurnitureCreate/properties/name"},
+              "category": {"$ref": "#/components/schemas/FurnitureCreate/properties/category"}
+            },
+            "required": ["name", "category"],
+            "additionalProperties": false
           },
           "manifest": {
             "$ref": "#/components/schemas/DownloadGrant"
@@ -15969,7 +15979,7 @@
         },
         "then": {
           "properties": {
-            "input": {"required": ["category"]}
+            "input": {"required": ["furniture", "category"]}
           }
         },
         "examples": [
@@ -15983,6 +15993,7 @@
               "kind": "RECONSTRUCTION",
               "captureId": "00000000-0000-4000-8000-000000000040",
               "category": "DESK",
+              "furniture": {"name": "책상", "category": "DESK"},
               "manifest": {
                 "asset": {
                   "fileId": "00000000-0000-4000-8000-000000000313",

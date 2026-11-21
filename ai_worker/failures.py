@@ -21,6 +21,12 @@ class EngineDependencyError(RuntimeError):
     pass
 
 
+class FurnitureFailure(RuntimeError):
+    def __init__(self, code, message, retryable):
+        super().__init__(code)
+        self.report = (code, message, retryable)
+
+
 def problem_code(response):
     try:
         body = response.json()
@@ -35,6 +41,8 @@ def retryable_status(status):
 
 
 def failure_for(error, job_type):
+    if isinstance(error, FurnitureFailure):
+        return error.report
     if isinstance(error, httpx.HTTPStatusError):
         status = error.response.status_code
         code = problem_code(error.response)

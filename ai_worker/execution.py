@@ -34,13 +34,15 @@ def stop_process(task):
         task.wait()
 
 
-def wait_for_engine(task, lost):
-    deadline = time.monotonic() + ENGINE_TIMEOUT_SECONDS
+def wait_for_engine(task, lost, timeout=ENGINE_TIMEOUT_SECONDS, tick=None):
+    deadline = time.monotonic() + timeout
     while task.poll() is None:
         if lost.is_set():
             raise RuntimeError("Worker lease was lost")
         if time.monotonic() > deadline:
             raise TimeoutError("Worker attempt time limit expired")
+        if tick is not None:
+            tick()
         time.sleep(1)
     if task.returncode == INVALID_ENGINE_DATA_EXIT:
         raise InvalidEngineData("Invalid engine input or export; inspect engine.log")
@@ -50,7 +52,11 @@ def wait_for_engine(task, lost):
         raise RuntimeError("AI engine failed; inspect engine.log")
 
 
-def run_engine(environment, log_path, lost):
+def run_engine(environment, log_path, lost, timeout=ENGINE_TIMEOUT_SECONDS, tick=None):
+    if lost.is_set():
+        raise RuntimeError("Worker lease was lost")
+    if timeout <= 0:
+        raise TimeoutError("Worker attempt time limit expired")
     with log_path.open("wb") as log:
         task = subprocess.Popen(
             [sys.executable, "-m", "ai_worker.engine"],
@@ -60,6 +66,6 @@ def run_engine(environment, log_path, lost):
             start_new_session=True,
         )
         try:
-            wait_for_engine(task, lost)
+            wait_for_engine(task, lost, timeout, tick)
         finally:
             stop_process(task)

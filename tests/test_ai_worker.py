@@ -1,16 +1,20 @@
 import hashlib
+from datetime import datetime, timedelta, timezone
+import io
 import json
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import time
 import threading
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
+import zipfile
 
 import httpx
 
-from ai_worker import engine, runner
+from ai_worker import engine, furniture, runner
 from ai_worker.client import WorkerClient
 from ai_worker.execution import run_engine
 from ai_worker.failures import InvalidArtifact, InvalidEngineData, failure_for
@@ -43,7 +47,7 @@ class WorkerFailureTest(unittest.TestCase):
         with TemporaryDirectory() as temp:
             args = SimpleNamespace(
                 backend="https://backend.example.test", worker_id="test-worker",
-                work_root=Path(temp), pr2_repo=Path(temp), furniture_engine=None,
+                work_root=Path(temp), pr2_repo=Path(temp), furniture_engine=None, furniture_repo=None,
             )
             with (
                 patch.object(runner, "WorkerClient", return_value=client),
@@ -167,6 +171,7 @@ class PublicationTest(unittest.TestCase):
         client = Mock(assignment={**ASSIGNMENT, "type": result_type})
         client.request.side_effect = register
         client.complete.side_effect = complete
+        client.heartbeat.side_effect = lambda: events.append("heartbeat")
         with TemporaryDirectory() as temp:
             output = Path(temp)
             files = []
@@ -177,7 +182,24 @@ class PublicationTest(unittest.TestCase):
             (output / "result.json").write_text(json.dumps({"result": result, "files": files}))
             with patch("ai_worker.publication.httpx.put", side_effect=put):
                 self.assertEqual(publish(client, output), {"status": "COMPLETED"})
-        self.assertEqual(events, ["register", "MODEL", "COLLISION", "complete"])
+        self.assertEqual(events, ["register", "MODEL", "COLLISION", "heartbeat", "complete"])
+
+    def test_completion_retries_identical_body_after_transport_error(self):
+        calls = []
+
+        def handle(request):
+            calls.append(request.content)
+            if len(calls) == 1:
+                raise httpx.ReadTimeout("Response lost", request=request)
+            return httpx.Response(200, json={"status": "COMPLETED"})
+
+        with WorkerClient("https://backend.example.test", "test-token", "test-worker") as client:
+            client.http.close()
+            client.http = httpx.Client(transport=httpx.MockTransport(handle))
+            client.assignment = ASSIGNMENT
+            self.assertEqual(client.complete({"type": JOB_TYPE}), {"status": "COMPLETED"})
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0], calls[1])
 
     def test_room_bundle_binding_is_unchanged(self):
         result = {"type": JOB_TYPE, "bundle": {"meshSource": {"objectAssets": []}}}
@@ -198,15 +220,15 @@ class PublicationTest(unittest.TestCase):
 class FurnitureEngineTest(unittest.TestCase):
     def test_polling_requires_a_configured_engine(self):
         job = {"type": "FURNITURE_RECONSTRUCTION", "jobId": JOB_ID}
-        args = SimpleNamespace(secret_file=Path("secret"), worker_id="worker", furniture_engine=None)
+        args = SimpleNamespace(secret_file=Path("secret"), worker_id="worker", types=runner.ROOM_TYPES)
         with (
             patch.object(runner, "pending_jobs", return_value=[job]),
             patch.object(runner, "worker_token", return_value="worker-token"),
-            patch.object(runner, "run_job") as run,
+            patch.object(runner, "run_job", return_value=True) as run,
         ):
             runner.process_queue(args)
             run.assert_not_called()
-            args.furniture_engine = Path("/gpu/furniture-engine")
+            args.types = runner.SUPPORTED
             runner.process_queue(args)
             run.assert_called_once_with(args, JOB_ID, "worker-token")
 
@@ -266,3 +288,141 @@ class FurnitureEngineTest(unittest.TestCase):
                 self.assertEqual(stream.call_count, 2)
                 script.assert_called_once()
             self.assertEqual(list(Path(temp).iterdir()), [output])
+
+    def test_furniture_first_and_only_one_claimed_job_per_poll(self):
+        jobs = [
+            {"type": "ROOM_RECONSTRUCTION", "jobId": "room"},
+            {"type": furniture.FURNITURE, "jobId": "stale"},
+            {"type": furniture.FURNITURE, "jobId": "furniture"},
+        ]
+        args = SimpleNamespace(secret_file=Path("secret"), worker_id="worker", types=runner.SUPPORTED)
+        with (
+            patch.object(runner, "pending_jobs", return_value=jobs),
+            patch.object(runner, "worker_token", return_value="worker-token"),
+            patch.object(runner, "run_job", side_effect=[False, True]) as run,
+        ):
+            runner.process_queue(args)
+        self.assertEqual([call.args[1] for call in run.call_args_list], ["stale", "furniture"])
+
+
+class FurniturePipelineTest(unittest.TestCase):
+    @staticmethod
+    def grant(data, seconds, mime="application/zip"):
+        return {
+            "clientFileId": JOB_ID,
+            "expiresAt": (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat(),
+            "url": "https://storage.example.test/capture",
+            "asset": {
+                "fileId": JOB_ID, "contentType": mime,
+                "byteSize": len(data), "sha256": hashlib.sha256(data).hexdigest(),
+            },
+        }
+
+    def test_zip_claim_passes_category_and_publishes_both_glbs(self):
+        with io.BytesIO() as buffer:
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("capture/meta.json", '{"kind":"furniture"}')
+            raw = buffer.getvalue()
+        data = {
+            "archive": self.grant(raw, 900),
+            "furniture": {"name": "TV 받침", "category": "TABLE"},
+            "category": "TV",
+            "measuredDimensions": {"width": 1, "height": 0.8, "depth": 0.5},
+        }
+        assignment = {
+            **ASSIGNMENT, "type": furniture.FURNITURE, "input": data,
+            "leaseExpiresAt": (datetime.now(timezone.utc) + timedelta(seconds=120)).isoformat(),
+        }
+        events = []
+
+        def route(request):
+            action = request.url.path.rsplit("/", 1)[-1]
+            events.append(action)
+            body = json.loads(request.content)
+            if action == "claim":
+                return httpx.Response(200, json=assignment)
+            if action == "artifacts":
+                self.assertEqual([f["role"] for f in body["files"]], ["MODEL", "COLLISION"])
+                return httpx.Response(200, json={"uploads": [
+                    {"fileId": JOB_ID, "url": f"https://storage.example.test/{f['role']}", "headers": {}}
+                    for f in body["files"]
+                ]})
+            if action == "heartbeat":
+                self.assertEqual(body["progressPercent"], 99)
+                return httpx.Response(200, json={})
+            if action == "complete":
+                self.assertIn("modelAsset", body)
+                self.assertIn("collisionAsset", body)
+                return httpx.Response(200, json={"status": "COMPLETED"})
+            self.fail(f"Unexpected action: {action}")
+
+        def execute(environment, log, lost, timeout, tick):
+            self.assertEqual(environment["CATEGORY"], "TABLE")
+            self.assertEqual(json.loads(environment["MEASURED"]), data["measuredDimensions"])
+            self.assertTrue(6500 < int(environment["DEADLINE_EPOCH"]) - time.time() < 6601)
+            self.assertEqual(Path(environment["CAPTURE_DIR"]).name, "capture")
+            self.assertTrue((Path(environment["CAPTURE_DIR"]) / "meta.json").is_file())
+            output = Path(environment["OUTPUT"])
+            (output / "progress.json").write_text(json.dumps({"percent": 50, "stage": "SEGMENTING"}))
+            tick()
+            self.assertEqual(client.progress, 50)
+            for filename in ("model.glb", "collision.glb"):
+                (output / filename).write_bytes(filename.encode())
+            (output / "furniture.json").write_text(json.dumps({
+                "dimensions": data["measuredDimensions"], "boundingBox": {}, "quality": {},
+            }))
+            furniture.write_result(output)
+
+        def upload(url, **kwargs):
+            events.append(url.rsplit("/", 1)[-1])
+            return httpx.Response(200, request=httpx.Request("PUT", url))
+
+        with TemporaryDirectory() as temp, WorkerClient("https://backend.test", "test-token", "worker") as client:
+            root = Path(temp)
+            args = SimpleNamespace(
+                backend="https://backend.test", worker_id="worker", work_root=root,
+                pr2_repo=root, furniture_repo=root, furniture_engine=None,
+            )
+            client.http.close()
+            client.http = httpx.Client(transport=httpx.MockTransport(route))
+            with (
+                httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, content=raw))) as storage,
+                patch.object(runner, "WorkerClient", return_value=client),
+                patch.object(engine.httpx, "stream", side_effect=lambda method, url, **_: storage.stream(method, url)),
+                patch.object(furniture, "run_engine", side_effect=execute),
+                patch("ai_worker.publication.httpx.put", side_effect=upload),
+            ):
+                self.assertTrue(runner.run_job(args, JOB_ID, "test-token"))
+            attempt = root / JOB_ID / "1"
+            self.assertFalse((attempt / "capture.zip").exists())
+            self.assertFalse((attempt / "zip").exists())
+        self.assertEqual(events, ["claim", "artifacts", "MODEL", "COLLISION", "heartbeat", "complete"])
+
+    def test_refresh_reuses_latest_grant(self):
+        old = self.grant(b"example", 5, "image/jpeg")
+        fresh = self.grant(b"example", 900, "image/jpeg")
+        client = Mock(assignment={"input": {"images": [old]}})
+        client.heartbeat.side_effect = lambda **_: client.assignment.update(input={"images": [fresh]})
+        self.assertIs(furniture.current_grant(client, old), fresh)
+        self.assertIs(furniture.current_grant(client, old), fresh)
+        client.heartbeat.assert_called_once_with(refresh_urls=True)
+
+    def test_missing_category_never_falls_back_to_generic_detection(self):
+        with self.assertRaises(InvalidEngineData):
+            furniture.pipeline_environment(Path("."), {"furniture": {"name": "TV"}}, Path("."), Path("."), 0)
+
+    def test_script_exit_code_controls_job_retry(self):
+        for status, code, retryable in (
+            (2, "SEGMENTATION_FAILED", False), (3, "DEPENDENCY_UNAVAILABLE", True),
+        ):
+            with self.subTest(status=status), TemporaryDirectory() as temp:
+                output = Path(temp)
+                (output / "error.json").write_text(json.dumps({"code": code, "message": "시험"}))
+                with (
+                    patch.dict(os.environ, FURNITURE_REPO=temp),
+                    patch.object(furniture.subprocess, "run", return_value=Mock(returncode=status)),
+                    self.assertRaises(SystemExit),
+                ):
+                    furniture.run_pipeline(output)
+                problem = furniture.pipeline_failure(output / "failure.json", {code})
+                self.assertEqual(problem.report, (code, "시험", retryable))

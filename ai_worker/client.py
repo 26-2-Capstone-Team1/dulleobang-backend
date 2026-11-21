@@ -22,6 +22,7 @@ class WorkerClient:
         self.lost = threading.Event()
         self._stop = threading.Event()
         self._lock = threading.Lock()
+        self._heartbeat_lock = threading.Lock()
         self.progress, self.stage = 0, "PREPROCESSING"
         self._thread = None
 
@@ -72,14 +73,17 @@ class WorkerClient:
             self.progress, self.stage = percent, stage
 
     def heartbeat(self, refresh_urls=False):
-        with self._lock:
-            percent, stage = self.progress, self.stage
-        result = self.request(
-            "heartbeat", {"progressPercent": percent, "stage": stage, "refreshInputUrls": refresh_urls}
-        )
-        if "input" in result:
-            self.assignment["input"] = result["input"]
-        return result
+        with self._heartbeat_lock:
+            if self._stop.is_set():
+                return {}
+            with self._lock:
+                percent, stage = self.progress, self.stage
+            result = self.request(
+                "heartbeat", {"progressPercent": percent, "stage": stage, "refreshInputUrls": refresh_urls}
+            )
+            if "input" in result:
+                self.assignment["input"] = result["input"]
+            return result
 
     def _heartbeat_loop(self):
         while not self._stop.wait(30):
@@ -149,9 +153,13 @@ class WorkerClient:
         return result
 
     def complete(self, result):
-        response = self.request("complete", result)
-        self._stop.set()
-        return response
+        with self._heartbeat_lock:
+            try:
+                response = self.request("complete", result)
+            except httpx.TransportError:
+                response = self.request("complete", result)
+            self._stop.set()
+            return response
 
     def fail(self, code, message, retryable=False):
         response = self.request("fail", {"error": {"code": code, "message": message, "retryable": retryable}})

@@ -1,4 +1,4 @@
-"""Poll Spring Boot and coordinate leased PR #2 attempts."""
+"""Poll Spring Boot and coordinate leased AI attempts."""
 
 from __future__ import annotations
 import argparse
@@ -8,14 +8,15 @@ from pathlib import Path
 import time
 import uuid
 import httpx
+from . import furniture
 from .client import WorkerClient
 from .execution import run_engine
 from .failures import failure_for
 from .publication import publish
 from .tokens import worker_token
 
-SUPPORTED = {"ROOM_RECONSTRUCTION", "ROOM_OBJECT_REMOVAL"}
-FURNITURE_RECONSTRUCTION = "FURNITURE_RECONSTRUCTION"
+ROOM_TYPES = {"ROOM_RECONSTRUCTION", "ROOM_OBJECT_REMOVAL"}
+SUPPORTED = ROOM_TYPES | {furniture.FURNITURE}
 
 
 def prepare_attempt(args, assignment):
@@ -31,6 +32,7 @@ def prepare_attempt(args, assignment):
 
 def engine_environment(args, path, output):
     environment = os.environ.copy()
+    environment.pop("FURNITURE_REPO", None)
     environment.update(
         DULLEOBANG_ASSIGNMENT=str(path),
         DULLEOBANG_OUTPUT=str(output),
@@ -55,21 +57,32 @@ def report_failure(client, job_type, error):
 def run_job(args, job_id, token):
     job_id = str(uuid.UUID(job_id))
     with WorkerClient(args.backend, token, args.worker_id) as client:
-        assignment = client.claim(job_id)
+        before_claim = time.time()
+        try:
+            assignment = client.claim(job_id)
+        except httpx.HTTPStatusError as error:
+            if error.response.status_code == 409:
+                return False
+            raise
         path = None
         try:
             directory, output, path = prepare_attempt(args, assignment)
-            client.update_progress(5, "RECONSTRUCTING")
-            run_engine(
-                engine_environment(args, path, output), directory / "engine.log", client.lost
-            )
-            publish(client, output)
+            environment = engine_environment(args, path, output)
+            if assignment["type"] == furniture.FURNITURE and args.furniture_repo is not None:
+                furniture.run_attempt(
+                    args, client, assignment, directory, output, environment, before_claim
+                )
+            else:
+                client.update_progress(5, "RECONSTRUCTING")
+                run_engine(environment, directory / "engine.log", client.lost)
+                publish(client, output)
         except Exception as error:
             report_failure(client, assignment["type"], error)
             raise
         finally:
             if path is not None:
                 path.unlink(missing_ok=True)
+    return True
 
 
 def pending_jobs(args):
@@ -84,17 +97,17 @@ def pending_jobs(args):
 
 
 def process_queue(args):
-    for job in pending_jobs(args):
-        if job["type"] not in SUPPORTED and not (
-            job["type"] == FURNITURE_RECONSTRUCTION and args.furniture_engine is not None
-        ):
-            continue
+    jobs = [job for job in pending_jobs(args) if job["type"] in args.types]
+    jobs.sort(key=lambda job: job["type"] != furniture.FURNITURE)
+    for job in jobs:
         try:
-            run_job(args, job["jobId"], worker_token(args.secret_file, args.worker_id))
+            if not run_job(args, job["jobId"], worker_token(args.secret_file, args.worker_id)):
+                continue
         except httpx.HTTPStatusError as error:
             print("Job HTTP status", error.response.status_code, flush=True)
         except Exception as error:
             print("Job failed", job["jobId"], type(error).__name__, flush=True)
+        return
 
 
 def arguments():
@@ -106,15 +119,30 @@ def arguments():
         "--pr2-repo", type=Path, default=Path("/mnt/cdata/dulleobang-worker/ai-poc")
     )
     parser.add_argument("--work-root", type=Path, default=Path("/data/indoor-ai-poc/backend-jobs"))
-    parser.add_argument(
+    engines = parser.add_mutually_exclusive_group()
+    engines.add_argument(
+        "--furniture-repo", type=Path, help="AI checkout containing the furniture pipeline"
+    )
+    engines.add_argument(
         "--furniture-engine", type=Path, help="Executable adapter for furniture captures"
     )
+    parser.add_argument("--types", help="Comma-separated job types to poll")
     args = parser.parse_args()
+    if args.furniture_repo is not None:
+        repo = args.furniture_repo.resolve()
+        scripts = repo / "scripts/furniture"
+        if not all((scripts / name).is_file() for name in ("run_furniture.sh", "self_check.py")):
+            parser.error("--furniture-repo must contain the furniture pipeline and self-check")
+        args.furniture_repo = repo
     if args.furniture_engine is not None:
         engine = args.furniture_engine.resolve()
         if not engine.is_file() or not os.access(engine, os.X_OK):
             parser.error("--furniture-engine must point to an executable file")
         args.furniture_engine = engine
+    enabled = SUPPORTED if args.furniture_repo or args.furniture_engine else ROOM_TYPES
+    args.types = set(args.types.split(",")) if args.types else enabled
+    if not args.types <= enabled:
+        parser.error("--types must name enabled job types; furniture requires a repository or adapter")
     return args
 
 

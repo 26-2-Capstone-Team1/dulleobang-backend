@@ -100,4 +100,5 @@ def publish(client, output):
         raise InvalidArtifact("Output artifacts do not match the result") from error
     (output / "callback.json").write_text(json.dumps(result), encoding="utf-8")
     client.update_progress(99, "VALIDATING")
+    client.heartbeat()
     return client.complete(result)

@@ -104,6 +104,7 @@ public class JobInputService {
     if (job.type().equals("FURNITURE_RECONSTRUCTION")) {
       var item = furniture.find(job.targetId(), job.owner(), false).orElseThrow();
       result.put("category", item.category());
+      result.put("furniture", Map.of("name", item.name(), "category", item.category()));
       result.put("measuredDimensions", item.measuredDimensions());
     } else result.put("measuredDimensions", null);
     if (capture.archive() != null) result.put("archive", download(capture.archive()));

@@ -25,13 +25,15 @@ INPUT_SUFFIXES = {
 }
 
 
-def download(grant, target):
+def download(grant, target, check=None):
     expected = grant['asset']
     digest, total = hashlib.sha256(), 0
     with httpx.stream('GET',grant['url'],timeout=180,follow_redirects=False,trust_env=False) as response:
         response.raise_for_status()
         with target.open('wb') as stream:
             for chunk in response.iter_bytes():
+                if check is not None:
+                    check()
                 total += len(chunk)
                 if total > expected['byteSize']: raise ValueError('Input exceeds declared size')
                 digest.update(chunk)
@@ -133,7 +135,8 @@ def reconstruct_furniture(assignment, output):
 
 
 def prepare_furniture_input(inputs, folder):
-    category = inputs.get("category")
+    furniture = inputs.get("furniture")
+    category = furniture.get("category") if isinstance(furniture, dict) else inputs.get("category")
     if not isinstance(category, str) or not category.strip():
         raise ValueError("Furniture capture requires a category")
     manifest = {
@@ -141,6 +144,8 @@ def prepare_furniture_input(inputs, folder):
         "category": category,
         "measuredDimensions": inputs.get("measuredDimensions"),
     }
+    if furniture is not None:
+        manifest["furniture"] = furniture
     for key in ("archive", "manifest", "roomplan", "roomplanStructure"):
         grant = inputs.get(key)
         if grant is not None:
@@ -160,7 +165,13 @@ def main():
     output=Path(os.environ['DULLEOBANG_OUTPUT']).resolve()
     if assignment['type']=='ROOM_RECONSTRUCTION': reconstruct(assignment,output)
     elif assignment['type']=='ROOM_OBJECT_REMOVAL': remove(assignment,output)
-    elif assignment['type']=='FURNITURE_RECONSTRUCTION': reconstruct_furniture(assignment,output)
+    elif assignment['type']=='FURNITURE_RECONSTRUCTION':
+        if os.environ.get("FURNITURE_REPO"):
+            from .furniture import run_pipeline
+
+            run_pipeline(output)
+        else:
+            reconstruct_furniture(assignment, output)
     else: raise ValueError('Unsupported AI job type')
 
 if __name__ == "__main__":
