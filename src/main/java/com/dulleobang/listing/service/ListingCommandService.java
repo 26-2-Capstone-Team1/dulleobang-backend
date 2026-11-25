@@ -1,16 +1,21 @@
 package com.dulleobang.listing.service;
 
+import com.dulleobang.common.contract.ContractValidator;
 import com.dulleobang.common.exception.ApiException;
 import com.dulleobang.common.idempotency.*;
 import com.dulleobang.common.idempotency.service.IdempotencyService;
 import com.dulleobang.common.json.StrictJson;
 import com.dulleobang.common.version.ETagParser;
+import com.dulleobang.listing.domain.ListingRecord;
+import com.dulleobang.listing.dto.ListingCreateRequest;
+import com.dulleobang.listing.mapper.MobileListingInputMapper;
 import com.dulleobang.listing.repository.ListingRepository;
 import com.dulleobang.listing.validation.ListingFieldsPolicy;
 import com.dulleobang.upload.repository.UploadRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Clock;
 import java.util.*;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +28,8 @@ public class ListingCommandService {
   private final UploadRepository uploads;
   private final IdempotencyService idempotency;
   private final Clock clock;
+  private final MobileListingInputMapper mobileInput;
+  private final ContractValidator contracts;
   private final com.dulleobang.job.service.JobCommandService jobs;
 
   public ListingCommandService(
@@ -33,6 +40,8 @@ public class ListingCommandService {
       UploadRepository uploads,
       IdempotencyService idempotency,
       Clock clock,
+      MobileListingInputMapper mobileInput,
+      ContractValidator contracts,
       com.dulleobang.job.service.JobCommandService jobs) {
     this.repository = repository;
     this.access = access;
@@ -41,11 +50,28 @@ public class ListingCommandService {
     this.uploads = uploads;
     this.idempotency = idempotency;
     this.clock = clock;
+    this.mobileInput = mobileInput;
+    this.contracts = contracts;
     this.jobs = jobs;
   }
 
-  public StoredResponse create(
-      UUID actor, String path, String key, JsonNode input, boolean mobile) {
+  public StoredResponse createMobile(UUID actor, String key, ListingCreateRequest request) {
+    var input = mobileInput.convert(request);
+    contracts.validate("ListingCreate", StrictJson.stringify(input));
+    return create(actor, "/api/listings", key, input, item -> views.mobile(actor, item));
+  }
+
+  public StoredResponse createLegacy(UUID actor, String key, JsonNode input) {
+    return create(
+        actor, "/api/v1/listings", key, input, item -> views.canonical(actor, item, false));
+  }
+
+  private StoredResponse create(
+      UUID actor,
+      String path,
+      String key,
+      JsonNode input,
+      Function<ListingRecord, Object> present) {
     var validated = fields.merge(input, null);
     return idempotency.execute(
         actor.toString(),
@@ -59,7 +85,7 @@ public class ListingCommandService {
           var item = access.get(actor, id, true, false, false);
           return new StoredResponse(
               201,
-              StrictJson.stringify(views.response(actor, item, false, mobile)),
+              StrictJson.stringify(present.apply(item)),
               Map.of("Location", "/api/v1/listings/" + id, "ETag", "\"1\""));
         });
   }

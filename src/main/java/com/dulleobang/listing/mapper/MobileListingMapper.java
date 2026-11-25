@@ -1,94 +1,81 @@
 package com.dulleobang.listing.mapper;
 
-import com.dulleobang.common.json.StrictJson;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.dulleobang.listing.dto.ListingResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.StreamSupport;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MobileListingMapper {
-  public ObjectNode convert(ObjectNode value) {
+  private static final Map<String, String> APP_OPTIONS = new HashMap<>();
+
+  static {
+    MobileListingInputMapper.OPTIONS.forEach((app, stored) -> APP_OPTIONS.put(stored, app));
+  }
+
+  public ListingResponse convert(JsonNode value) {
     var location = value.path("location");
     var price = value.path("price");
     var owner = value.path("owner");
-    var result = (ObjectNode) StrictJson.parse("{}");
-    result.set("listingId", value.get("listingId"));
-    result.put("location", location.path("roadAddress").asText());
-    price(result, price);
-    result.set("dealType", price.get("leaseType"));
-    result.set("latitude", location.get("latitude"));
-    result.set("longitude", location.get("longitude"));
-    result.set("area", value.get("exclusiveAreaM2"));
-    media(result, value);
-    result.set("isScrapped", value.get("isScrapped"));
-    result.set("status", value.get("status"));
-    var info = result.putObject("space3DInfo");
-    info.put("status", value.path("currentSpaceVersion").isNull() ? "NONE" : "COMPLETED");
-    info.set("jobId", value.get("activeJobId"));
-    details(result, value);
-    return result;
+    var options =
+        StreamSupport.stream(value.path("rentalOptions").spliterator(), false)
+            .map(JsonNode::asText)
+            .map(option -> APP_OPTIONS.getOrDefault(option, option.toLowerCase(Locale.ROOT)))
+            .toList();
+    var photos =
+        StreamSupport.stream(value.path("photos").spliterator(), false)
+            .map(photo -> photo.path("url").asText())
+            .toList();
+    return new ListingResponse(
+        uuid(value, "listingId"),
+        location.path("roadAddress").asText(),
+        new ListingResponse.Price(money(price, "deposit"), money(price, "monthlyRent")),
+        money(price, "maintenanceFee"),
+        price.path("leaseType").asText(),
+        location.path("latitude").doubleValue(),
+        location.path("longitude").doubleValue(),
+        value.path("exclusiveAreaM2").doubleValue(),
+        options,
+        photos,
+        photos.isEmpty() ? null : photos.getFirst(),
+        new ListingResponse.Agent(
+            uuid(owner, "userId"),
+            text(owner, "displayName"),
+            text(owner, "officeName"),
+            text(owner, "phone"),
+            owner.path("isVerifiedListingAgent").asBoolean()),
+        value.path("isScrapped").asBoolean(),
+        value.path("status").asText(),
+        new ListingResponse.SpaceInfo(
+            value.path("currentSpaceVersion").isNull() ? "NONE" : "COMPLETED",
+            uuid(value, "activeJobId")),
+        text(value, "roomType"),
+        integer(value, "floor"),
+        integer(value, "totalFloors"),
+        value.hasNonNull("supplyAreaM2") ? value.get("supplyAreaM2").doubleValue() : null,
+        integer(value, "roomCount"),
+        integer(value, "bathroomCount"),
+        text(value, "availableFrom"),
+        text(value, "livingEnvironment"));
   }
 
-  private void price(ObjectNode result, com.fasterxml.jackson.databind.JsonNode price) {
-    var money = (ObjectNode) StrictJson.parse("{}");
-    money.put(
-        "deposit",
-        price.path("deposit").decimalValue().divide(java.math.BigDecimal.valueOf(10000)));
-    money.put(
-        "monthly",
-        price.path("monthlyRent").decimalValue().divide(java.math.BigDecimal.valueOf(10000)));
-    result.set("price", money);
-    if (price.path("maintenanceFee").isNull()) result.putNull("maintenanceFee");
-    else
-      result.put(
-          "maintenanceFee",
-          price.path("maintenanceFee").decimalValue().divide(java.math.BigDecimal.valueOf(10000)));
+  private BigDecimal money(JsonNode value, String field) {
+    return value.hasNonNull(field)
+        ? value.get(field).decimalValue().divide(BigDecimal.valueOf(10000))
+        : null;
   }
 
-  private void media(ObjectNode result, ObjectNode value) {
-    var options = result.putArray("rentalOptions");
-    value
-        .path("rentalOptions")
-        .forEach(
-            v ->
-                options.add(
-                    MobileListingInputMapper.OPTIONS.entrySet().stream()
-                        .filter(e -> e.getValue().equals(v.asText()))
-                        .map(Map.Entry::getKey)
-                        .findFirst()
-                        .orElse(v.asText().toLowerCase(Locale.ROOT))));
-    var uris = result.putArray("imageUris");
-    value.path("photos").forEach(v -> uris.add(v.path("url").asText()));
-    if (value.path("photos").isEmpty()) result.putNull("thumbnailUri");
-    else result.set("thumbnailUri", value.path("photos").get(0).get("url"));
-    var owner = value.path("owner");
-    var agent = result.putObject("agent");
-    agent.set("userId", owner.get("userId"));
-    agent.set("name", owner.get("displayName"));
-    agent.set("officeName", owner.get("officeName"));
-    agent.set("phone", owner.get("phone"));
-    agent.set("isVerifiedBroker", owner.get("isVerifiedListingAgent"));
+  private Integer integer(JsonNode value, String field) {
+    return value.hasNonNull(field) ? value.get(field).intValue() : null;
   }
 
-  private void details(ObjectNode result, ObjectNode value) {
-    for (var e :
-        Map.of(
-                "roomType",
-                "roomType",
-                "floor",
-                "floor",
-                "totalFloors",
-                "totalFloors",
-                "supplyAreaM2",
-                "supplyArea",
-                "roomCount",
-                "rooms",
-                "bathroomCount",
-                "bathrooms",
-                "availableFrom",
-                "availableFrom",
-                "livingEnvironment",
-                "livingEnvironment")
-            .entrySet()) if (value.has(e.getKey())) result.set(e.getValue(), value.get(e.getKey()));
+  private String text(JsonNode value, String field) {
+    return value.path(field).asText(null);
+  }
+
+  private UUID uuid(JsonNode value, String field) {
+    return value.hasNonNull(field) ? UUID.fromString(value.get(field).asText()) : null;
   }
 }

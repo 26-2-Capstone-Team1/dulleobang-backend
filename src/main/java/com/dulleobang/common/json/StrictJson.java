@@ -56,6 +56,14 @@ public final class StrictJson {
     node.elements().forEachRemaining(StrictJson::numbers);
   }
 
+  public static <T> T bind(JsonNode node, Class<T> type) {
+    try {
+      return MAPPER.treeToValue(node, type);
+    } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+      throw new IllegalArgumentException("Invalid " + type.getSimpleName(), ex);
+    }
+  }
+
   public static String stringify(Object object) {
     try {
       return MAPPER.writeValueAsString(object);

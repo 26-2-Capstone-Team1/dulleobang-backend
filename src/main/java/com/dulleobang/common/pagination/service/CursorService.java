@@ -34,6 +34,16 @@ public class CursorService {
   }
 
   @Transactional
+  public Page select(UUID owner, String path, Map<String, Object> query, List<String> liveIds) {
+    var filters = new LinkedHashMap<>(query);
+    String token = (String) filters.remove("cursor");
+    int limit = ((Number) filters.getOrDefault("limit", 20)).intValue();
+    if (token == null) return start(owner, path, filters, liveIds, limit);
+    var live = new HashSet<>(liveIds);
+    return resume(owner, path, filters, token, limit, live::contains);
+  }
+
+  @Transactional
   public Page start(
       UUID owner, String path, Map<String, Object> filters, List<String> ids, int limit) {
     if (new HashSet<>(ids).size() != ids.size())

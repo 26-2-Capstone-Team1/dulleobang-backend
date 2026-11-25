@@ -78,23 +78,14 @@ public class CatalogService {
     filters.put("limit", limit);
     if (category != null) filters.put("category", category);
     if (!search.isEmpty()) filters.put("q", search);
-    var matches = new LinkedHashMap<String, CatalogItem>();
-    for (var item : catalog.list()) {
-      if (category != null && !category.equals(item.category())) continue;
-      if (!item.name().toLowerCase(Locale.ROOT).contains(search)
-          && !item.article().toLowerCase(Locale.ROOT).contains(search)) continue;
-      matches.put(item.catalogId(), item);
-    }
-    var page =
-        cursor == null
-            ? cursors.start(actor, path, filters, matches.keySet().stream().toList(), limit)
-            : cursors.resume(actor, path, filters, cursor, limit, matches::containsKey);
+    if (cursor != null) filters.put("cursor", cursor);
+    var page = cursors.select(actor, path, filters, catalog.searchIds(category, search));
     var info = new LinkedHashMap<String, Object>();
     info.put("nextCursor", page.nextCursor());
     info.put("hasNext", page.hasNext());
     return Map.of(
         "items",
-        page.ids().stream().map(id -> present(matches.get(id), false)).toList(),
+        catalog.findOrdered(page.ids()).stream().map(item -> present(item, false)).toList(),
         "page",
         info);
   }
