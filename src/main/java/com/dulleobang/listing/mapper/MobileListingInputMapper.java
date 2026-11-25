@@ -64,4 +64,77 @@ public class MobileListingInputMapper {
     if (body.bathrooms() != null) value.put("bathroomCount", body.bathrooms());
     return (ObjectNode) StrictJson.parse(StrictJson.stringify(value));
   }
+
+  public ObjectNode patch(ObjectNode body, ObjectNode previous) {
+    var result = body.deepCopy();
+    patchLocation(previous, result);
+    patchPrice(previous, result);
+    for (var field :
+        Map.of(
+                "area",
+                "exclusiveAreaM2",
+                "supplyArea",
+                "supplyAreaM2",
+                "rooms",
+                "roomCount",
+                "bathrooms",
+                "bathroomCount")
+            .entrySet()) {
+      var value = result.remove(field.getKey());
+      if (value != null) result.set(field.getValue(), value);
+    }
+    if (body.has("rentalOptions")) {
+      var options = result.putArray("rentalOptions");
+      body.get("rentalOptions")
+          .forEach(
+              option -> {
+                String value = option.asText();
+                options.add(OPTIONS.getOrDefault(value, value.toUpperCase(Locale.ROOT)));
+              });
+    }
+    return result;
+  }
+
+  private void patchLocation(ObjectNode previous, ObjectNode result) {
+    var location = ((ObjectNode) previous.get("location")).deepCopy();
+    boolean changed = false;
+    for (var field :
+        Map.of(
+                "location",
+                "roadAddress",
+                "detailAddress",
+                "detailAddress",
+                "regionCode",
+                "regionCode",
+                "latitude",
+                "latitude",
+                "longitude",
+                "longitude")
+            .entrySet()) {
+      var value = result.remove(field.getKey());
+      if (value != null) {
+        location.set(field.getValue(), value);
+        changed = true;
+      }
+    }
+    if (changed) result.set("location", location);
+  }
+
+  private void patchPrice(ObjectNode previous, ObjectNode result) {
+    var price = ((ObjectNode) previous.get("price")).deepCopy();
+    var amount = result.remove("price");
+    var deal = result.remove("dealType");
+    var maintenance = result.remove("maintenanceFee");
+    if (amount == null && deal == null && maintenance == null) return;
+    if (amount != null) {
+      price.put("deposit", Math.multiplyExact(amount.get("deposit").longValue(), 10_000));
+      price.put("monthlyRent", Math.multiplyExact(amount.get("monthly").longValue(), 10_000));
+    }
+    if (deal != null) price.set("leaseType", deal);
+    if (maintenance != null) {
+      if (maintenance.isNull()) price.putNull("maintenanceFee");
+      else price.put("maintenanceFee", Math.multiplyExact(maintenance.longValue(), 10_000));
+    }
+    result.set("price", price);
+  }
 }

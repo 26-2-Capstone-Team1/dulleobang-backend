@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/api/auth", "/api/v1/auth"})
+@RequestMapping("/api/auth")
 public class PasswordAuthController {
   private final PasswordAuthService auth;
   private final JsonInput input;

@@ -19,7 +19,7 @@ public class Sam3dController {
     this.input = input;
   }
 
-  @PostMapping({"/api/v1/furniture/sam3d-imports", "/api/furniture/sam3d-imports"})
+  @PostMapping("/api/furniture/sam3d-imports")
   public ResponseEntity<String> save(
       Principal actor,
       HttpServletRequest request,
@@ -33,6 +33,6 @@ public class Sam3dController {
             request.getRequestURI(),
             key,
             input.read(body, type, "Sam3dImport"),
-            !request.getRequestURI().startsWith("/api/v1/")));
+            true));
   }
 }

@@ -23,21 +23,18 @@ public class AiJobController {
     this.retries = retries;
   }
 
-  @GetMapping({"/api/ai-jobs/{id}", "/api/v1/ai-jobs/{id}"})
-  public ResponseEntity<String> get(
-      Principal actor, HttpServletRequest request, @PathVariable UUID id) {
+  @GetMapping("/api/ai-jobs/{id}")
+  public ResponseEntity<String> get(Principal actor, @PathVariable UUID id) {
     return HttpResponses.json(
-        JobMapper.response(
-            access.owned(UUID.fromString(actor.getName()), id, false),
-            !request.getRequestURI().startsWith("/api/v1/")));
+        JobMapper.response(access.owned(UUID.fromString(actor.getName()), id, false), true));
   }
 
-  @PostMapping("/api/v1/ai-jobs/{id}/cancel")
+  @PostMapping("/api/ai-jobs/{id}/cancel")
   public ResponseEntity<String> cancel(Principal actor, @PathVariable UUID id) {
     return HttpResponses.json(commands.cancel(UUID.fromString(actor.getName()), id));
   }
 
-  @PostMapping("/api/v1/ai-jobs/{id}/retries")
+  @PostMapping("/api/ai-jobs/{id}/retries")
   public ResponseEntity<String> retry(
       Principal actor,
       HttpServletRequest request,
@@ -45,6 +42,10 @@ public class AiJobController {
       @RequestHeader(value = "Idempotency-Key", required = false) String key) {
     IdempotencyService.requireKey(key);
     return HttpResponses.stored(
-        retries.retry(UUID.fromString(actor.getName()), id, request.getRequestURI(), key));
+        retries.retry(
+            UUID.fromString(actor.getName()),
+            id,
+            "/api/v1" + request.getRequestURI().substring("/api".length()),
+            key));
   }
 }

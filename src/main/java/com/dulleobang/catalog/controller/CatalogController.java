@@ -24,7 +24,7 @@ public class CatalogController {
     this.contracts = contracts;
   }
 
-  @GetMapping({"/api/v1/catalog/furniture", "/api/catalog/furniture"})
+  @GetMapping("/api/catalog/furniture")
   public ResponseEntity<String> list(
       Principal actor,
       HttpServletRequest request,
@@ -35,15 +35,15 @@ public class CatalogController {
     var page =
         catalog.getCatalogFurniture(
             UUID.fromString(actor.getName()), request.getRequestURI(), category, q, limit, cursor);
-    return response("CatalogPage", page, mobile(request));
+    return response("CatalogPage", page);
   }
 
-  @GetMapping({"/api/v1/catalog/furniture/{catalogId}", "/api/catalog/furniture/{catalogId}"})
-  public ResponseEntity<String> get(HttpServletRequest request, @PathVariable String catalogId) {
-    return response("CatalogItemDetail", catalog.getCatalogItem(catalogId), mobile(request));
+  @GetMapping("/api/catalog/furniture/{catalogId}")
+  public ResponseEntity<String> get(@PathVariable String catalogId) {
+    return response("CatalogItemDetail", catalog.getCatalogItem(catalogId));
   }
 
-  @PostMapping({"/api/v1/furniture/from-catalog", "/api/furniture/from-catalog"})
+  @PostMapping("/api/furniture/from-catalog")
   public ResponseEntity<String> create(
       Principal actor,
       HttpServletRequest request,
@@ -51,25 +51,17 @@ public class CatalogController {
       @RequestHeader(value = "Content-Type", required = false) String type,
       @RequestHeader(value = "Idempotency-Key", required = false) String key) {
     IdempotencyService.requireKey(key);
-    boolean mobile = mobile(request);
-    var json =
-        mobile
-            ? input.readMobile(body, type, "CatalogFurnitureCreate")
-            : input.read(body, type, "CatalogFurnitureCreate");
+    var json = input.readMobile(body, type, "CatalogFurnitureCreate");
     var result =
         catalog.createFromCatalog(
-            UUID.fromString(actor.getName()), request.getRequestURI(), key, json, mobile);
-    contracts.validateResponse(mobile ? "MobileFurniture" : "Furniture", result.body(), mobile);
+            UUID.fromString(actor.getName()), request.getRequestURI(), key, json, true);
+    contracts.validateResponse("MobileFurniture", result.body(), true);
     return HttpResponses.stored(result);
   }
 
-  private ResponseEntity<String> response(String schema, Object value, boolean mobile) {
+  private ResponseEntity<String> response(String schema, Object value) {
     var body = StrictJson.stringify(value);
-    contracts.validateResponse(schema, body, mobile);
+    contracts.validateResponse(schema, body, true);
     return ResponseEntity.ok().header("Content-Type", "application/json").body(body);
-  }
-
-  private static boolean mobile(HttpServletRequest request) {
-    return !request.getRequestURI().startsWith("/api/v1/");
   }
 }

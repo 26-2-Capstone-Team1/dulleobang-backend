@@ -92,8 +92,8 @@ public class AgentVerificationService {
           apply(actor, input, null);
           return new StoredResponse(
               201,
-              StrictJson.stringify(get(actor, false)),
-              Map.of("Location", "/api/v1/users/me/listing-agent-verification"));
+              StrictJson.stringify(get(actor, true)),
+              Map.of("Location", "/api/users/me/agent-profile"));
         });
   }
 }

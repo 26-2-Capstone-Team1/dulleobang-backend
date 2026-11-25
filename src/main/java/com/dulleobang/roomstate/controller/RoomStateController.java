@@ -29,7 +29,7 @@ public class RoomStateController {
     this.input = input;
   }
 
-  @PostMapping({"/api/v1/listings/{id}/room-states", "/api/listings/{id}/room-states"})
+  @PostMapping("/api/listings/{id}/room-states")
   public ResponseEntity<String> create(
       Principal actor,
       HttpServletRequest request,
@@ -38,52 +38,40 @@ public class RoomStateController {
       @RequestHeader(value = "Content-Type", required = false) String type,
       @RequestHeader(value = "Idempotency-Key", required = false) String key) {
     IdempotencyService.requireKey(key);
-    boolean mobile = mobile(request);
-    var json =
-        mobile
-            ? input.readMobile(body, type, "MobilecreateRoomState")
-            : input.read(body, type, "RoomStateCreate");
+    var json = input.readMobile(body, type, "MobilecreateRoomState");
     return HttpResponses.stored(
         command.create(
-            UUID.fromString(actor.getName()), id, request.getRequestURI(), key, json, mobile));
+            UUID.fromString(actor.getName()), id, request.getRequestURI(), key, json, true));
   }
 
-  @GetMapping({"/api/v1/listings/{id}/room-states", "/api/listings/{id}/room-states"})
+  @GetMapping("/api/listings/{id}/room-states")
   public ResponseEntity<String> list(
       Principal actor,
       HttpServletRequest request,
       @PathVariable UUID id,
       @RequestParam MultiValueMap<String, String> raw) {
     var q = parameters.read("getRoomStates", raw);
-    boolean mobile = mobile(request);
     return response(
         query.list(
             UUID.fromString(actor.getName()),
             id,
             request.getRequestURI(),
             q,
-            mobile,
-            mobile && !raw.containsKey("limit") && !raw.containsKey("cursor")));
+            true,
+            !raw.containsKey("limit") && !raw.containsKey("cursor")));
   }
 
-  @GetMapping({"/api/v1/room-states/{id}", "/api/room-states/{id}"})
+  @GetMapping("/api/room-states/{id}")
   public ResponseEntity<String> get(
-      Principal actor,
-      HttpServletRequest request,
-      @PathVariable UUID id,
-      @RequestParam MultiValueMap<String, String> raw) {
+      Principal actor, @PathVariable UUID id, @RequestParam MultiValueMap<String, String> raw) {
     parameters.read("getRoomState", raw);
-    return response(query.get(UUID.fromString(actor.getName()), id, mobile(request)));
+    return response(query.get(UUID.fromString(actor.getName()), id, true));
   }
 
-  @DeleteMapping({"/api/v1/room-states/{id}", "/api/room-states/{id}"})
+  @DeleteMapping("/api/room-states/{id}")
   public ResponseEntity<Void> delete(Principal actor, @PathVariable UUID id) {
     command.delete(UUID.fromString(actor.getName()), id);
     return ResponseEntity.noContent().build();
-  }
-
-  private static boolean mobile(HttpServletRequest request) {
-    return !request.getRequestURI().startsWith("/api/v1/");
   }
 
   private static ResponseEntity<String> response(Object value) {

@@ -4,9 +4,21 @@ Java 21, Spring Boot, PostgreSQL 기반 API입니다. AI 작업 처리는 [AI �
 
 ## API와 브랜치
 
-앱은 `/api`를 사용합니다. 기존 `/api/v1` 호출과 워커의 내부 API는 호환 계약을 유지합니다.
+공개 API는 `/api`를 사용합니다. 요청과 응답은 [OpenAPI 계약](src/main/resources/contract/mobile-openapi.json)을 기준으로 합니다. GPU 워커는 `/api/v1/internal/ai-jobs`를 사용합니다.
 
-`main`은 릴리스, `develop`은 통합 브랜치입니다. 새 기능은 `develop`에서 작업 브랜치를 만들어 통합합니다. 자세한 결정은 [앱 매물 API](docs/adr/0001-app-listing-contract.md), [PostgreSQL 데이터 접근](docs/adr/0002-postgresql-access.md), [Git Flow](docs/adr/0003-git-flow.md)에 있습니다.
+| 기존 공개 호출 | 새 호출 |
+|---|---|
+| `/api/v1/listings` 및 하위 경로 | `/api/listings` 및 하위 경로. 매물 등록·수정 금액은 만원 단위입니다. |
+| `POST /api/v1/listings/{id}/captures/zip` | `POST /api/listings/{id}/captures`에 ZIP을 전달합니다. |
+| 캡처 업로드 세션 제출 | `POST /api/listings/{id}/captures` 또는 `POST /api/furniture/{id}/captures`에 JSON으로 `uploadSessionId`를 전달합니다. |
+| `/api/v1/chats` 및 하위 경로 | `/api/chat` 및 하위 경로를 사용합니다. 메시지는 `POST /api/chat/{id}`에 `message`로 전달합니다. |
+| `/api/v1/users/me/listing-agent-verification` | `/api/users/me/agent-profile`에 multipart 문서 또는 JSON의 `documentFileId`로 신청합니다. |
+| `PUT /api/v1/listings/{id}/scrap` | `POST /api/listings/{id}/scrap` |
+| SAM 3D 스튜디오 가져오기 | 백엔드 브리지가 `POST /api/furniture/sam3d-imports`를 호출합니다. |
+
+기존 외부 호출자는 새 경로와 응답 형식에 맞춰 이전합니다. 기존 v1 OpenAPI 파일은 내부 스키마 및 요청 검증의 참조로 사용합니다.
+
+`main`은 릴리스, `develop`은 통합 브랜치입니다. 새 기능은 `develop`에서 작업 브랜치를 만들어 통합합니다. 자세한 결정은 [앱 매물 API](docs/adr/0001-app-listing-contract.md), [PostgreSQL 데이터 접근](docs/adr/0002-postgresql-access.md), [Git Flow](docs/adr/0003-git-flow.md), [Spring Boot 전환](docs/adr/0004-spring-boot-migration.md)에 있습니다.
 
 ## Windows 로컬 실행
 
@@ -64,16 +76,16 @@ uv run --no-project --with-requirements app/requirements.txt \
 - `<article>/meta.json`: `name`, `category`, `dimensions`, `boundingBox`, `quality`, `sourceUrl`과 `sha256`(파일명 → 해시)을 포함합니다. `files` 안에 파일명별 `{"sha256": "…"}`을 넣은 형식도 읽습니다. 치수·경계 상자·품질은 기존 `FurnitureModel` 형식입니다.
 - `<article>/model.glb`, `<article>/collision.glb`, `<article>/photo.jpg`: 원본의 SHA-256을 모두 대조한 뒤 두 GLB와 바닥 중심 경계 상자를 검증합니다. 실패한 항목은 게시하지 않고 명령이 중단됩니다. 다시 실행하면 이미 가져온 품번은 갱신되고, 같은 해시의 파일은 중복 저장되지 않습니다. 원본이 바뀌어도 이미 등록한 개인 가구의 모델은 유지됩니다.
 
-| API (`/api/v1` 기준) | 동작 |
+| API (`/api` 기준) | 동작 |
 |---|---|
 | `GET /catalog/furniture` | 이름·품번 `q`, `category`, `cursor`, `limit`으로 조회. 목록에는 썸네일만 포함합니다. |
 | `GET /catalog/furniture/{catalogId}` | 해당 항목에 서명된 두 GLB URL이 든 `model`을 포함합니다. |
 | `POST /furniture/from-catalog` | `Idempotency-Key`에 요청별 UUID, 본문에 `catalogId`와 선택 `name`을 보내면 모델 버전 1인 `READY` 가구를 반환합니다(201). |
 
-모두 로그인해야 하며, 개인 가구 등록에는 기존과 같이 `TENANT` 역할이 필요합니다. 수납 가구는 현행 `SHELF` 카테고리를 유지합니다. 모바일 `/api` 경로도 제공하며 등록 결과의 상태·모델 URL은 기존 모바일 가구 응답과 같습니다.
+모두 로그인해야 하며, 개인 가구 등록에는 기존과 같이 `TENANT` 역할이 필요합니다. 수납 가구는 현행 `SHELF` 카테고리를 유지합니다. 등록 응답은 가구 상태와 모델 URL을 포함합니다.
 
 모바일 내 가구 응답은 기존 `modelUri`, `dimensions`, `boundingBox`, `collisionMeshUri`를 유지합니다. 카탈로그에서 등록한 가구처럼 전체 모델 정보가 있으면 `model`도 반환합니다.
 
 가구 GLB 좌표의 가로는 X, 높이는 Y, 깊이는 Z에 맞춥니다. 뷰어는 `dimensions`에 맞춰 축별로 크기를 조절하므로 원본도 이 방향으로 내보내야 합니다.
 
-파일 URL이 없거나 만료되면 파일 참조(`model.modelAsset`, `model.collisionAsset`, `thumbnail`)의 `fileId`로 `GET /api/assets/{fileId}/download`(또는 `/api/v1/assets/{fileId}/download`)를 호출합니다. 이 요청에는 로그인 토큰을 붙이고, 응답으로 받은 15분 유효 서명 URL에는 붙이지 않습니다. `BASE_URL`은 `/api` 접미사 없이 앱에서 접근할 수 있는 서버 주소로 설정합니다.
+파일 URL이 없거나 만료되면 파일 참조(`model.modelAsset`, `model.collisionAsset`, `thumbnail`)의 `fileId`로 `GET /api/assets/{fileId}/download`를 호출합니다. 이 요청에는 로그인 토큰을 붙이고, 응답으로 받은 15분 유효 서명 URL에는 붙이지 않습니다. `BASE_URL`은 `/api` 접미사 없이 앱에서 접근할 수 있는 서버 주소로 설정합니다.

@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Dulleobang mobile compatibility contract",
-    "version": "1.1.1-frozen"
+    "title": "Dulleobang Public API",
+    "version": "2.0.0"
   },
   "paths": {
     "/api/auth/signup": {
@@ -319,6 +319,120 @@
             "bearerAuth": []
           }
         ]
+      },
+      "patch": {
+        "operationId": "updateMe",
+        "summary": "내 이름·연락처·공개 동의 수정",
+        "description": "권한: 본인. 원자적으로 수정하고 version 증가.",
+        "tags": [
+          "인증"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "내 이름·연락처·공개 동의 수정 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                },
+                "example": {
+                  "userId": "00000000-0000-4000-8000-000000000001",
+                  "email": "tenant@example.com",
+                  "displayName": "둘러방 사용자",
+                  "roles": [
+                    "TENANT"
+                  ],
+                  "version": 1,
+                  "createdAt": "2026-09-21T03:00:00.000Z",
+                  "authProviders": [
+                    "EMAIL"
+                  ],
+                  "phone": null,
+                  "isPhonePublic": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "412": {
+            "$ref": "#/components/responses/Error412"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "428": {
+            "$ref": "#/components/responses/Error428"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "본인",
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatch"
+              },
+              "example": {
+                "displayName": "새 표시 이름"
+              }
+            }
+          }
+        }
       }
     },
     "/api/listings": {
@@ -379,10 +493,10 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 1000000000000,
-              "description": "KRW 원 단위. 만원 단위가 아닙니다."
+              "maximum": 100000000,
+              "description": "Price in units of 10,000 KRW."
             },
-            "description": "KRW 원 단위. 만원 단위가 아닙니다."
+            "description": "Price in units of 10,000 KRW."
           },
           {
             "name": "maxDeposit",
@@ -391,10 +505,10 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 1000000000000,
-              "description": "KRW 원 단위. 만원 단위가 아닙니다."
+              "maximum": 100000000,
+              "description": "Price in units of 10,000 KRW."
             },
-            "description": "KRW 원 단위. 만원 단위가 아닙니다."
+            "description": "Price in units of 10,000 KRW."
           },
           {
             "name": "minMonthlyRent",
@@ -403,10 +517,10 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 1000000000000,
-              "description": "KRW 원 단위. 만원 단위가 아닙니다."
+              "maximum": 100000000,
+              "description": "Price in units of 10,000 KRW."
             },
-            "description": "KRW 원 단위. 만원 단위가 아닙니다."
+            "description": "Price in units of 10,000 KRW."
           },
           {
             "name": "maxMonthlyRent",
@@ -415,10 +529,10 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 1000000000000,
-              "description": "KRW 원 단위. 만원 단위가 아닙니다."
+              "maximum": 100000000,
+              "description": "Price in units of 10,000 KRW."
             },
-            "description": "KRW 원 단위. 만원 단위가 아닙니다."
+            "description": "Price in units of 10,000 KRW."
           },
           {
             "name": "minAreaM2",
@@ -911,6 +1025,192 @@
             "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
           }
         }
+      },
+      "patch": {
+        "operationId": "updateListing",
+        "summary": "매물 정보 수정",
+        "description": "권한: 매물 소유자. ARCHIVED는 409. 사진 배열은 전체 교체, 첫 파일이 thumbnail. PUBLISHED의 사진을 0장으로 만들면 409. 다른 매물 업로드 파일은 404.",
+        "tags": [
+          "매물"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "매물 정보 수정 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileListing"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "412": {
+            "$ref": "#/components/responses/Error412"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "428": {
+            "$ref": "#/components/responses/Error428"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "매물 소유자",
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppListingPatch"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteListing",
+        "summary": "매물 삭제",
+        "description": "권한: 매물 소유자. soft delete. 활성 작업은 원자적으로 CANCELED. 조회/첨부 에셋 접근 즉시 차단하고 하위 파생 공간/배치도 비노출. 삭제된 동일 ID 재요청은 인증 소유자에 한해 204; 존재 없는 ID는 404.",
+        "tags": [
+          "매물"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "매물 삭제 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "412": {
+            "$ref": "#/components/responses/Error412"
+          },
+          "428": {
+            "$ref": "#/components/responses/Error428"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "매물 소유자",
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+          }
+        ]
       }
     },
     "/api/ai-jobs/{jobId}": {
@@ -1507,20 +1807,48 @@
         "operationId": "getAssetDownload",
         "summary": "파일의 서명 다운로드 주소 갱신",
         "description": "로그인 필요. 소유한 파일, 공개 매물 파일 또는 카탈로그 파일의 서명 URL을 반환합니다.",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
-          {"name": "fileId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "15분 유효한 다운로드 주소",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DownloadGrant"}}}
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadGrant"
+                }
+              }
+            }
           },
-          "400": {"$ref": "#/components/responses/Error400"},
-          "401": {"$ref": "#/components/responses/Error401"},
-          "404": {"$ref": "#/components/responses/Error404"},
-          "429": {"$ref": "#/components/responses/Error429"},
-          "503": {"$ref": "#/components/responses/Error503"}
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
         }
       }
     },
@@ -1528,32 +1856,79 @@
       "get": {
         "operationId": "getCatalogFurniture",
         "summary": "가구 카탈로그 목록",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "category",
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": ["BED", "SOFA", "DESK", "TABLE", "CHAIR", "WARDROBE", "SHELF", "REFRIGERATOR", "WASHING_MACHINE", "AIR_CONDITIONER", "TV", "OTHER"]
+              "enum": [
+                "BED",
+                "SOFA",
+                "DESK",
+                "TABLE",
+                "CHAIR",
+                "WARDROBE",
+                "SHELF",
+                "REFRIGERATOR",
+                "WASHING_MACHINE",
+                "AIR_CONDITIONER",
+                "TV",
+                "OTHER"
+              ]
             }
           },
           {
             "name": "q",
             "in": "query",
             "description": "이름 또는 품번의 일부. 대소문자 구분 없음.",
-            "schema": {"type": "string", "maxLength": 80}
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
           },
-          {"name": "cursor", "in": "query", "schema": {"type": "string", "minLength": 1, "maxLength": 2048}},
-          {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 50, "default": 20}}
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "모델을 제외한 카탈로그 항목과 페이지 정보",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CatalogPage"}}}
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogPage"
+                }
+              }
+            }
           },
-          "400": {"$ref": "#/components/responses/Error400"},
-          "401": {"$ref": "#/components/responses/Error401"}
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          }
         }
       }
     },
@@ -1561,17 +1936,38 @@
       "get": {
         "operationId": "getCatalogItem",
         "summary": "가구 카탈로그 상세 및 모델",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
-          {"name": "catalogId", "in": "path", "required": true, "schema": {"$ref": "#/components/schemas/CatalogId"}}
+          {
+            "name": "catalogId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CatalogId"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "모델을 포함한 카탈로그 항목",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CatalogItemDetail"}}}
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItemDetail"
+                }
+              }
+            }
           },
-          "401": {"$ref": "#/components/responses/Error401"},
-          "404": {"$ref": "#/components/responses/Error404"}
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          }
         }
       }
     },
@@ -1580,28 +1976,77 @@
         "operationId": "createFurnitureFromCatalog",
         "summary": "카탈로그에서 내 가구 등록",
         "description": "권한: TENANT. 기존 모바일 가구와 같은 COMPLETED 상태 및 모델 URL을 반환합니다.",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "x-authorization": "TENANT",
         "parameters": [
-          {"name": "Idempotency-Key", "in": "header", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CatalogFurnitureCreate"}}}
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogFurnitureCreate"
+              }
+            }
+          }
         },
         "responses": {
           "201": {
             "description": "내 가구 등록 성공",
-            "headers": {"Location": {"schema": {"type": "string"}}, "ETag": {"schema": {"type": "string"}}},
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MobileFurniture"}}}
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFurniture"
+                }
+              }
+            }
           },
-          "400": {"$ref": "#/components/responses/Error400"},
-          "401": {"$ref": "#/components/responses/Error401"},
-          "403": {"$ref": "#/components/responses/Error403"},
-          "404": {"$ref": "#/components/responses/Error404"},
-          "409": {"$ref": "#/components/responses/Error409"},
-          "415": {"$ref": "#/components/responses/Error415"},
-          "422": {"$ref": "#/components/responses/Error422"}
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          }
         }
       }
     },
@@ -1857,6 +2302,192 @@
             "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
           }
         }
+      },
+      "patch": {
+        "operationId": "updateFurniture",
+        "summary": "가구 정보 수정",
+        "description": "권한: 가구 소유자. 버전 검사 후 이름/카테고리 수정. 치수는 3D 아티팩트와 일관되게 유지.",
+        "tags": [
+          "가구"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "가구 정보 수정 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFurniture"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "412": {
+            "$ref": "#/components/responses/Error412"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "428": {
+            "$ref": "#/components/responses/Error428"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "가구 소유자",
+        "parameters": [
+          {
+            "name": "furnitureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppFurniturePatch"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFurniture",
+        "summary": "가구 삭제",
+        "description": "권한: 가구 소유자. 어느 본인 배치든 해당 가구를 참조하면 409 RESOURCE_IN_USE. 활성 작업 취소 및 soft delete. 동일 사용자 삭제 재호출 204.",
+        "tags": [
+          "가구"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "가구 삭제 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "412": {
+            "$ref": "#/components/responses/Error412"
+          },
+          "428": {
+            "$ref": "#/components/responses/Error428"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "가구 소유자",
+        "parameters": [
+          {
+            "name": "furnitureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+          }
+        ]
       }
     },
     "/api/listings/{listingId}/placements": {
@@ -2012,6 +2643,82 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "deletePlacements",
+        "summary": "내 배치 삭제",
+        "description": "권한: TENANT 본인. 본인 세트 삭제. 이미 없음은 204. 존재하면 If-Match로 경쟁 수정 방지.",
+        "tags": [
+          "배치"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "내 배치 삭제 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "412": {
+            "$ref": "#/components/responses/Error412"
+          },
+          "428": {
+            "$ref": "#/components/responses/Error428"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "TENANT 본인",
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+          }
+        ]
       }
     },
     "/api/auth/oauth/kakao": {
@@ -2515,8 +3222,11 @@
           "429": {
             "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
           },
-          "501": {
-            "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
           }
         },
         "requestBody": {
@@ -2550,6 +3260,18 @@
                   "documentName",
                   "document"
                 ]
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingAgentVerificationCreate"
+              },
+              "example": {
+                "name": "차유현",
+                "licenseNumber": "TEST-001",
+                "officeName": "상도 공인중개사",
+                "phone": "02-1234-5678",
+                "documentFileId": "00000000-0000-4000-8000-000000000010"
               }
             }
           }
@@ -2718,8 +3440,20 @@
           "429": {
             "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
           },
-          "501": {
-            "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
           }
         },
         "requestBody": {
@@ -2729,6 +3463,14 @@
               "schema": {
                 "type": "string",
                 "format": "binary"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureSubmit"
+              },
+              "example": {
+                "uploadSessionId": "00000000-0000-4000-8000-000000000030"
               }
             }
           }
@@ -2802,8 +3544,20 @@
           "429": {
             "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
           },
-          "501": {
-            "description": "See legacy error code contract; 501 only describes the P0-P2 migration state."
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
           }
         },
         "requestBody": {
@@ -2813,6 +3567,14 @@
               "schema": {
                 "type": "string",
                 "format": "binary"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureSubmit"
+              },
+              "example": {
+                "uploadSessionId": "00000000-0000-4000-8000-000000000030"
               }
             }
           }
@@ -3117,6 +3879,1938 @@
             }
           }
         }
+      }
+    },
+    "/api/listings/{listingId}/publication": {
+      "put": {
+        "operationId": "setPublication",
+        "summary": "매물 공개 상태 변경",
+        "description": "권한: 매물 소유자. DRAFT↔PUBLISHED, 둘 다 ARCHIVED로 전환 가능. ARCHIVED→DRAFT만 허용. 게시에는 사진, 현재 READY 공간 필요(409 PUBLISH_REQUIREMENTS_NOT_MET). 진행 중 작업이 있으면 ARCHIVED 전환 409.",
+        "tags": [
+          "매물"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "매물 공개 상태 변경 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileListing"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "412": {
+            "$ref": "#/components/responses/Error412"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "428": {
+            "$ref": "#/components/responses/Error428"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "매물 소유자",
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "직전 상세 GET의 강한 ETag. 누락 428, 불일치 412."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationRequest"
+              },
+              "example": {
+                "status": "PUBLISHED"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload-sessions": {
+      "post": {
+        "operationId": "createUploadSession",
+        "summary": "업로드 세션 생성",
+        "description": "권한: 대상 소유자. 매물/가구 소유자 또는 본인 USER. 실내 IMAGE30~1000+manifest1, 선택 PNG16 깊이·PNG8 신뢰도 각각0 또는 이미지수, RoomPlan JSON각0~1. 사진1~30, 인증사진1. 최대파일3003,세션5GiB. 서명PUT은binary원문.",
+        "tags": [
+          "파일·촬영"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "업로드 세션 생성 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSessionCreated"
+                },
+                "example": {
+                  "session": {
+                    "uploadSessionId": "00000000-0000-4000-8000-000000000030",
+                    "purpose": "FURNITURE_CAPTURE",
+                    "targetType": "FURNITURE",
+                    "targetId": "00000000-0000-4000-8000-000000000020",
+                    "status": "OPEN",
+                    "files": [
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000201",
+                        "fileName": "frame_0001.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000301",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000202",
+                        "fileName": "frame_0002.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000302",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000203",
+                        "fileName": "frame_0003.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000303",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000204",
+                        "fileName": "frame_0004.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000304",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000205",
+                        "fileName": "frame_0005.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000305",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000206",
+                        "fileName": "frame_0006.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000306",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000207",
+                        "fileName": "frame_0007.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000307",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000208",
+                        "fileName": "frame_0008.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000308",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000209",
+                        "fileName": "frame_0009.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000309",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000210",
+                        "fileName": "frame_0010.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000310",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000211",
+                        "fileName": "frame_0011.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000311",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000212",
+                        "fileName": "frame_0012.jpg",
+                        "contentType": "image/jpeg",
+                        "byteSize": 2048,
+                        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "fileId": "00000000-0000-4000-8000-000000000312",
+                        "status": "PENDING"
+                      },
+                      {
+                        "clientFileId": "00000000-0000-4000-8000-000000000250",
+                        "fileName": "camera.json",
+                        "contentType": "application/json",
+                        "byteSize": 4096,
+                        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        "fileId": "00000000-0000-4000-8000-000000000313",
+                        "status": "PENDING"
+                      }
+                    ],
+                    "expiresAt": "2026-09-22T03:00:00.000Z",
+                    "createdAt": "2026-09-21T03:00:00.000Z"
+                  },
+                  "uploads": [
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000201",
+                      "fileId": "00000000-0000-4000-8000-000000000301",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000301?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000202",
+                      "fileId": "00000000-0000-4000-8000-000000000302",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000302?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000203",
+                      "fileId": "00000000-0000-4000-8000-000000000303",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000303?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000204",
+                      "fileId": "00000000-0000-4000-8000-000000000304",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000304?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000205",
+                      "fileId": "00000000-0000-4000-8000-000000000305",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000305?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000206",
+                      "fileId": "00000000-0000-4000-8000-000000000306",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000306?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000207",
+                      "fileId": "00000000-0000-4000-8000-000000000307",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000307?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000208",
+                      "fileId": "00000000-0000-4000-8000-000000000308",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000308?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000209",
+                      "fileId": "00000000-0000-4000-8000-000000000309",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000309?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000210",
+                      "fileId": "00000000-0000-4000-8000-000000000310",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000310?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000211",
+                      "fileId": "00000000-0000-4000-8000-000000000311",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000311?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000212",
+                      "fileId": "00000000-0000-4000-8000-000000000312",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000312?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000250",
+                      "fileId": "00000000-0000-4000-8000-000000000313",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000313?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "application/json",
+                        "x-amz-checksum-sha256": "u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7s="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "대상 소유자",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadSessionCreate"
+              },
+              "example": {
+                "purpose": "FURNITURE_CAPTURE",
+                "targetType": "FURNITURE",
+                "targetId": "00000000-0000-4000-8000-000000000020",
+                "files": [
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000201",
+                    "fileName": "frame_0001.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000202",
+                    "fileName": "frame_0002.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000203",
+                    "fileName": "frame_0003.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000204",
+                    "fileName": "frame_0004.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000205",
+                    "fileName": "frame_0005.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000206",
+                    "fileName": "frame_0006.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000207",
+                    "fileName": "frame_0007.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000208",
+                    "fileName": "frame_0008.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000209",
+                    "fileName": "frame_0009.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000210",
+                    "fileName": "frame_0010.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000211",
+                    "fileName": "frame_0011.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000212",
+                    "fileName": "frame_0012.jpg",
+                    "contentType": "image/jpeg",
+                    "byteSize": 2048,
+                    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  {
+                    "clientFileId": "00000000-0000-4000-8000-000000000250",
+                    "fileName": "camera.json",
+                    "contentType": "application/json",
+                    "byteSize": 4096,
+                    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload-sessions/{uploadSessionId}": {
+      "get": {
+        "operationId": "getUploadSession",
+        "summary": "업로드 세션 조회",
+        "description": "권한: 세션 소유자. OPEN/VERIFIED/CONSUMED/EXPIRED 메타데이터 조회. 만료 이력은 7일 유지.",
+        "tags": [
+          "파일·촬영"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "업로드 세션 조회 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSession"
+                },
+                "example": {
+                  "uploadSessionId": "00000000-0000-4000-8000-000000000030",
+                  "purpose": "FURNITURE_CAPTURE",
+                  "targetType": "FURNITURE",
+                  "targetId": "00000000-0000-4000-8000-000000000020",
+                  "status": "OPEN",
+                  "files": [
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000201",
+                      "fileName": "frame_0001.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000301",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000202",
+                      "fileName": "frame_0002.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000302",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000203",
+                      "fileName": "frame_0003.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000303",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000204",
+                      "fileName": "frame_0004.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000304",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000205",
+                      "fileName": "frame_0005.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000305",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000206",
+                      "fileName": "frame_0006.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000306",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000207",
+                      "fileName": "frame_0007.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000307",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000208",
+                      "fileName": "frame_0008.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000308",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000209",
+                      "fileName": "frame_0009.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000309",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000210",
+                      "fileName": "frame_0010.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000310",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000211",
+                      "fileName": "frame_0011.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000311",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000212",
+                      "fileName": "frame_0012.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000312",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000250",
+                      "fileName": "camera.json",
+                      "contentType": "application/json",
+                      "byteSize": 4096,
+                      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                      "fileId": "00000000-0000-4000-8000-000000000313",
+                      "status": "PENDING"
+                    }
+                  ],
+                  "expiresAt": "2026-09-22T03:00:00.000Z",
+                  "createdAt": "2026-09-21T03:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "세션 소유자",
+        "parameters": [
+          {
+            "name": "uploadSessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          }
+        ]
+      }
+    },
+    "/api/upload-sessions/{uploadSessionId}/upload-urls": {
+      "post": {
+        "operationId": "renewUploadUrls",
+        "summary": "업로드 URL 재발급",
+        "description": "권한: 세션 소유자. OPEN만 허용. PUT에 실패한 파일만 다시 요청. 409 SESSION_NOT_OPEN, 만료는 410 UPLOAD_SESSION_EXPIRED. 요청당 최대 3003개.",
+        "tags": [
+          "파일·촬영"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "업로드 URL 재발급 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadGrants"
+                },
+                "example": {
+                  "uploads": [
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000201",
+                      "fileId": "00000000-0000-4000-8000-000000000301",
+                      "url": "https://storage.example.com/upload/00000000-0000-4000-8000-000000000301?signature=example",
+                      "method": "PUT",
+                      "headers": {
+                        "Content-Type": "image/jpeg",
+                        "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                      },
+                      "expiresAt": "2026-09-21T03:15:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "세션 소유자",
+        "parameters": [
+          {
+            "name": "uploadSessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewUploadsRequest"
+              },
+              "example": {
+                "clientFileIds": [
+                  "00000000-0000-4000-8000-000000000201"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload-sessions/{uploadSessionId}/complete": {
+      "post": {
+        "operationId": "verifyUploadSession",
+        "summary": "업로드 검증 완료",
+        "description": "권한: 세션 소유자. 실제바이트·체크섬·RGB·manifest·PNG16깊이·confidence0/1/2·파일참조·RoomPlan·증빙을 검증. 성공 VERIFIED, 이후PUT불변. 실패는전체롤백.",
+        "tags": [
+          "파일·촬영"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "업로드 검증 완료 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSession"
+                },
+                "example": {
+                  "uploadSessionId": "00000000-0000-4000-8000-000000000030",
+                  "purpose": "FURNITURE_CAPTURE",
+                  "targetType": "FURNITURE",
+                  "targetId": "00000000-0000-4000-8000-000000000020",
+                  "status": "OPEN",
+                  "files": [
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000201",
+                      "fileName": "frame_0001.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000301",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000202",
+                      "fileName": "frame_0002.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000302",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000203",
+                      "fileName": "frame_0003.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000303",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000204",
+                      "fileName": "frame_0004.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000304",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000205",
+                      "fileName": "frame_0005.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000305",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000206",
+                      "fileName": "frame_0006.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000306",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000207",
+                      "fileName": "frame_0007.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000307",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000208",
+                      "fileName": "frame_0008.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000308",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000209",
+                      "fileName": "frame_0009.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000309",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000210",
+                      "fileName": "frame_0010.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000310",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000211",
+                      "fileName": "frame_0011.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000311",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000212",
+                      "fileName": "frame_0012.jpg",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "fileId": "00000000-0000-4000-8000-000000000312",
+                      "status": "PENDING"
+                    },
+                    {
+                      "clientFileId": "00000000-0000-4000-8000-000000000250",
+                      "fileName": "camera.json",
+                      "contentType": "application/json",
+                      "byteSize": 4096,
+                      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                      "fileId": "00000000-0000-4000-8000-000000000313",
+                      "status": "PENDING"
+                    }
+                  ],
+                  "expiresAt": "2026-09-22T03:00:00.000Z",
+                  "createdAt": "2026-09-21T03:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "세션 소유자",
+        "parameters": [
+          {
+            "name": "uploadSessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          }
+        ]
+      }
+    },
+    "/api/captures/{captureId}": {
+      "get": {
+        "operationId": "getCapture",
+        "summary": "촬영 묶음 조회",
+        "description": "권한: 캡처 소유자. 검증 완료된 파일 참조 및 최근 작업을 반환. 임차인이 매물을 볼 수 있어도 원본 촬영 자료는 볼 수 없음.",
+        "tags": [
+          "파일·촬영"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "촬영 묶음 조회 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capture"
+                },
+                "example": {
+                  "captureId": "00000000-0000-4000-8000-000000000040",
+                  "targetType": "FURNITURE",
+                  "targetId": "00000000-0000-4000-8000-000000000020",
+                  "uploadSessionId": "00000000-0000-4000-8000-000000000030",
+                  "manifestAsset": {
+                    "fileId": "00000000-0000-4000-8000-000000000313",
+                    "contentType": "application/json",
+                    "byteSize": 4096,
+                    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "format": "CAMERA_JSON_V1",
+                    "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000313?signature=example",
+                    "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                  },
+                  "imageAssets": [
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000301",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000301?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000302",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000302?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000303",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000303?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000304",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000304?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000305",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000305?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000306",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000306?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000307",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000307?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000308",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000308?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000309",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000309?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000310",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000310?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000311",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000311?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    },
+                    {
+                      "fileId": "00000000-0000-4000-8000-000000000312",
+                      "contentType": "image/jpeg",
+                      "byteSize": 2048,
+                      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "format": "JPEG",
+                      "url": "https://storage.example.com/assets/00000000-0000-4000-8000-000000000312?signature=example",
+                      "urlExpiresAt": "2026-09-30T03:00:00.000Z"
+                    }
+                  ],
+                  "latestJobId": "00000000-0000-4000-8000-000000000050",
+                  "createdAt": "2026-09-21T03:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "캡처 소유자",
+        "parameters": [
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          }
+        ]
+      }
+    },
+    "/api/ai-jobs/{jobId}/retries": {
+      "post": {
+        "operationId": "retryJob",
+        "summary": "실패 작업 수동 재시도",
+        "description": "권한: 작업 요청자. FAILED + error.retryable=true인 경우 새 jobId 생성. 같은 입력/대상/기준 버전 재사용. 그 외 409 JOB_NOT_RETRYABLE. 기존 target이 삭제/변경되어 실행 불가능하면 409. 입력이 만료되면 410 CAPTURE_EXPIRED.",
+        "tags": [
+          "AI 작업"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "실패 작업 수동 재시도 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                },
+                "example": {
+                  "jobId": "00000000-0000-4000-8000-000000000052",
+                  "status": "QUEUED",
+                  "pollAfterSeconds": 3
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error410"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "작업 요청자",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "요청별 UUID. 24시간 보관. 동일 사용자·method·path·key의 동일 body 재전송은 원 응답 재생."
+          }
+        ]
+      }
+    },
+    "/api/ai-jobs/{jobId}/cancel": {
+      "post": {
+        "operationId": "cancelJob",
+        "summary": "AI 작업 취소",
+        "description": "권한: 작업 요청자. QUEUED/RUNNING/RETRY_WAIT를 즉시 CANCELED로 커밋. 워커 중단은 협력적이며 이후 결과는 거절. 이미 CANCELED이면 200, COMPLETED/FAILED면 409. 취소가 먼저 커밋되면 결과 미반영.",
+        "tags": [
+          "AI 작업"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AI 작업 취소 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                },
+                "example": {
+                  "jobId": "00000000-0000-4000-8000-000000000050",
+                  "type": "FURNITURE_RECONSTRUCTION",
+                  "status": "COMPLETED",
+                  "targetType": "FURNITURE",
+                  "targetId": "00000000-0000-4000-8000-000000000020",
+                  "attemptNo": 1,
+                  "progressPercent": 100,
+                  "stage": "COMPLETED",
+                  "result": {
+                    "resourceType": "FURNITURE_MODEL",
+                    "resourceId": "00000000-0000-4000-8000-000000000020",
+                    "version": 1
+                  },
+                  "error": null,
+                  "retryOfJobId": null,
+                  "createdAt": "2026-09-21T03:00:00.000Z",
+                  "updatedAt": "2026-09-21T03:00:00.000Z",
+                  "finishedAt": "2026-09-21T03:00:00.000Z",
+                  "pollAfterSeconds": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "작업 요청자",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+          }
+        ]
+      }
+    },
+    "/api/users/me/placements": {
+      "get": {
+        "operationId": "getMyPlacements",
+        "summary": "저장 배치 목록·비교",
+        "description": "권한: TENANT 본인. 최신 저장순. 공개 중인 매물만 반환. 동일 가구 ID를 기준으로 앱에서 나란히 비교하며 자동 배치 이관은 하지 않음.",
+        "tags": [
+          "배치"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "저장 배치 목록·비교 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementPage"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "placementSetId": "00000000-0000-4000-8000-000000000081",
+                      "listingId": "00000000-0000-4000-8000-000000000010",
+                      "ownerId": "00000000-0000-4000-8000-000000000001",
+                      "version": 1,
+                      "space": {
+                        "kind": "ROOM_STATE",
+                        "spaceVersion": 1,
+                        "roomStateId": "00000000-0000-4000-8000-000000000070"
+                      },
+                      "placements": [
+                        {
+                          "placementId": "00000000-0000-4000-8000-000000000080",
+                          "furnitureId": "00000000-0000-4000-8000-000000000020",
+                          "modelVersion": 1,
+                          "transform": {
+                            "position": {
+                              "x": 1,
+                              "y": 0,
+                              "z": -1
+                            },
+                            "rotation": {
+                              "x": 0,
+                              "y": 0,
+                              "z": 0,
+                              "w": 1
+                            }
+                          }
+                        }
+                      ],
+                      "clientCollisionReport": {
+                        "rulesVersion": "1.0",
+                        "evaluatedAt": "2026-09-21T03:00:00.000Z",
+                        "inputSha256": "9cb0b75a6d1740f83a65ad8103b46f2e2bacb017cebbe41eae13c3f1e0ae29b8",
+                        "isPlaceable": true,
+                        "collisions": []
+                      },
+                      "validationAuthority": "CLIENT_ONLY",
+                      "isStale": false,
+                      "savedAt": "2026-09-21T03:00:00.000Z"
+                    }
+                  ],
+                  "page": {
+                    "nextCursor": null,
+                    "hasNext": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "TENANT 본인",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            },
+            "description": ""
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+            },
+            "description": "불투명 커서. 조건/정렬/호출자 변경 시 재사용 금지."
+          }
+        ]
+      }
+    },
+    "/api/chat/{chatId}/messages": {
+      "get": {
+        "operationId": "getChatMessages",
+        "summary": "채팅 메시지 목록",
+        "description": "권한: 로그인 사용자. 최신부터. before는 동일방 메시지ID,배타적. page커서/필터 동일 유지. 폴링3~5초.",
+        "tags": [
+          "채팅"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "채팅 메시지 목록 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePage"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "messageId": "00000000-0000-4000-8000-000000000010",
+                      "chatId": "00000000-0000-4000-8000-000000000010",
+                      "senderId": "00000000-0000-4000-8000-000000000001",
+                      "text": "토요일 방문 가능한가요?",
+                      "sentAt": "2026-09-30T03:00:00.000Z"
+                    }
+                  ],
+                  "page": {
+                    "nextCursor": null,
+                    "hasNext": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "로그인 사용자",
+        "parameters": [
+          {
+            "name": "chatId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "required": true,
+            "description": ""
+          },
+          {
+            "name": "before",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "required": false,
+            "description": ""
+          },
+          {
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            },
+            "in": "query",
+            "required": false,
+            "description": ""
+          },
+          {
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            "in": "query",
+            "required": false,
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/chat/{chatId}/read": {
+      "post": {
+        "operationId": "readChat",
+        "summary": "채팅 읽음 갱신",
+        "description": "권한: 로그인 사용자. 동일방 메시지만. 읽음 위치는 감소하지 않음.",
+        "tags": [
+          "채팅"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "채팅 읽음 갱신 성공",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "x-authorization": "로그인 사용자",
+        "parameters": [
+          {
+            "name": "chatId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "required": true,
+            "description": ""
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRead"
+              },
+              "example": {
+                "lastReadMessageId": "00000000-0000-4000-8000-000000000010"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/furniture/sam3d-imports": {
+      "post": {
+        "operationId": "importSam3dFurniture",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Sam3dImport"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Personal furniture from SAM 3D",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFurniture"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/furniture/sam3d-jobs": {
+      "post": {
+        "operationId": "createSam3dJob",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Sam3dJobCreate"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "SAM 3D job status"
+          }
+        }
+      }
+    },
+    "/api/furniture/sam3d-jobs/{studioJobId}": {
+      "get": {
+        "operationId": "getSam3dJob",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SAM 3D job status"
+          }
+        },
+        "parameters": [
+          {
+            "name": "studioJobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ]
       }
     }
   },
@@ -8290,41 +10984,96 @@
       "CatalogItem": {
         "type": "object",
         "properties": {
-          "catalogId": {"$ref": "#/components/schemas/CatalogId"},
-          "brand": {"const": "IKEA"},
-          "article": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"},
-          "name": {"$ref": "#/components/schemas/FurnitureCreate/properties/name"},
-          "category": {"$ref": "#/components/schemas/FurnitureCreate/properties/category"},
-          "dimensions": {"$ref": "#/components/schemas/Dimensions"},
-          "thumbnail": {"$ref": "#/components/schemas/AssetRef"},
-          "sourceUrl": {"$ref": "#/components/schemas/CatalogSourceUrl"},
-          "model": {"$ref": "#/components/schemas/FurnitureModel"}
+          "catalogId": {
+            "$ref": "#/components/schemas/CatalogId"
+          },
+          "brand": {
+            "const": "IKEA"
+          },
+          "article": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"
+          },
+          "name": {
+            "$ref": "#/components/schemas/FurnitureCreate/properties/name"
+          },
+          "category": {
+            "$ref": "#/components/schemas/FurnitureCreate/properties/category"
+          },
+          "dimensions": {
+            "$ref": "#/components/schemas/Dimensions"
+          },
+          "thumbnail": {
+            "$ref": "#/components/schemas/AssetRef"
+          },
+          "sourceUrl": {
+            "$ref": "#/components/schemas/CatalogSourceUrl"
+          },
+          "model": {
+            "$ref": "#/components/schemas/FurnitureModel"
+          }
         },
-        "required": ["catalogId", "brand", "article", "name", "category", "dimensions", "thumbnail", "sourceUrl"],
+        "required": [
+          "catalogId",
+          "brand",
+          "article",
+          "name",
+          "category",
+          "dimensions",
+          "thumbnail",
+          "sourceUrl"
+        ],
         "additionalProperties": false
       },
       "CatalogItemDetail": {
         "allOf": [
-          {"$ref": "#/components/schemas/CatalogItem"},
-          {"required": ["model"]}
+          {
+            "$ref": "#/components/schemas/CatalogItem"
+          },
+          {
+            "required": [
+              "model"
+            ]
+          }
         ]
       },
       "CatalogPage": {
         "type": "object",
         "properties": {
-          "items": {"type": "array", "items": {"$ref": "#/components/schemas/CatalogItem", "not": {"required": ["model"]}}},
-          "page": {"$ref": "#/components/schemas/PageInfo"}
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogItem",
+              "not": {
+                "required": [
+                  "model"
+                ]
+              }
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
         },
-        "required": ["items", "page"],
+        "required": [
+          "items",
+          "page"
+        ],
         "additionalProperties": false
       },
       "CatalogFurnitureCreate": {
         "type": "object",
         "properties": {
-          "catalogId": {"$ref": "#/components/schemas/CatalogId"},
-          "name": {"$ref": "#/components/schemas/FurnitureCreate/properties/name"}
+          "catalogId": {
+            "$ref": "#/components/schemas/CatalogId"
+          },
+          "name": {
+            "$ref": "#/components/schemas/FurnitureCreate/properties/name"
+          }
         },
-        "required": ["catalogId"],
+        "required": [
+          "catalogId"
+        ],
         "additionalProperties": false
       },
       "FurnitureCreate": {
@@ -9818,10 +12567,17 @@
             "type": "object",
             "description": "가구 복원 대상의 등록 이름과 v1 카테고리.",
             "properties": {
-              "name": {"$ref": "#/components/schemas/FurnitureCreate/properties/name"},
-              "category": {"$ref": "#/components/schemas/FurnitureCreate/properties/category"}
+              "name": {
+                "$ref": "#/components/schemas/FurnitureCreate/properties/name"
+              },
+              "category": {
+                "$ref": "#/components/schemas/FurnitureCreate/properties/category"
+              }
             },
-            "required": ["name", "category"],
+            "required": [
+              "name",
+              "category"
+            ],
             "additionalProperties": false
           },
           "manifest": {
@@ -10428,12 +13184,19 @@
         "additionalProperties": false,
         "if": {
           "properties": {
-            "type": {"const": "FURNITURE_RECONSTRUCTION"}
+            "type": {
+              "const": "FURNITURE_RECONSTRUCTION"
+            }
           }
         },
         "then": {
           "properties": {
-            "input": {"required": ["furniture", "category"]}
+            "input": {
+              "required": [
+                "furniture",
+                "category"
+              ]
+            }
           }
         },
         "examples": [
@@ -10447,7 +13210,10 @@
               "kind": "RECONSTRUCTION",
               "captureId": "00000000-0000-4000-8000-000000000040",
               "category": "DESK",
-              "furniture": {"name": "책상", "category": "DESK"},
+              "furniture": {
+                "name": "책상",
+                "category": "DESK"
+              },
               "manifest": {
                 "asset": {
                   "fileId": "00000000-0000-4000-8000-000000000313",
@@ -13179,6 +15945,27 @@
               "number",
               "null"
             ]
+          },
+          "regionCode": {
+            "type": "string",
+            "pattern": "^[0-9]{10}$"
+          },
+          "detailAddress": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 200
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": ""
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 3000,
+            "description": ""
           }
         },
         "required": [
@@ -13889,6 +16676,320 @@
             "finishedAt": "2026-09-21T03:00:00.000Z",
             "pollAfterSeconds": 0
           }
+        ]
+      },
+      "AppListingPatch": {
+        "type": "object",
+        "description": "Partial listing update. All amounts use units of 10,000 KRW. When price is provided, deposit and monthly are required.",
+        "properties": {
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "dealType": {
+            "type": "string",
+            "enum": [
+              "MONTHLY",
+              "JEONSE"
+            ],
+            "description": ""
+          },
+          "price": {
+            "type": "object",
+            "properties": {
+              "deposit": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000000
+              },
+              "monthly": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000000
+              }
+            },
+            "required": [
+              "deposit",
+              "monthly"
+            ],
+            "additionalProperties": false
+          },
+          "maintenanceFee": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000000
+          },
+          "roomType": {
+            "type": "string",
+            "enum": [
+              "ONE_ROOM",
+              "TWO_ROOM",
+              "THREE_ROOM",
+              "OFFICETEL"
+            ]
+          },
+          "floor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -10,
+                "maximum": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totalFloors": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "area": {
+            "type": "number",
+            "description": "소유 중개사 등록 전용면적. AI 실측 바닥면적과 별도.",
+            "minimum": 0.1,
+            "maximum": 10000
+          },
+          "supplyArea": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10000
+          },
+          "rooms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "bathrooms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+          },
+          "availableFrom": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "IMMEDIATE"
+                ]
+              },
+              {
+                "type": "string",
+                "format": "date"
+              }
+            ]
+          },
+          "rentalOptions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "parking",
+                "pet",
+                "elevator",
+                "aircon",
+                "fridge",
+                "washer",
+                "bed",
+                "desk",
+                "closet",
+                "induction",
+                "gas_stove",
+                "microwave",
+                "tv"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "latitude": {
+            "type": "number",
+            "description": "WGS84 위도.",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "description": "WGS84 경도.",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": ""
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 3000,
+            "description": ""
+          },
+          "photoFileIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID 문자열. 리소스 종류는 참조 대상과 일치해야 합니다."
+            },
+            "minItems": 0,
+            "maxItems": 30,
+            "description": "",
+            "uniqueItems": true
+          },
+          "livingEnvironment": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          },
+          "regionCode": {
+            "type": "string",
+            "pattern": "^[0-9]{10}$"
+          },
+          "detailAddress": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 200
+          }
+        },
+        "minProperties": 1,
+        "additionalProperties": false,
+        "examples": [
+          {
+            "price": {
+              "deposit": 1000,
+              "monthly": 65
+            },
+            "maintenanceFee": 7
+          }
+        ]
+      },
+      "AppFurniturePatch": {
+        "type": "object",
+        "description": "이름/카테고리만 변경. 측정값 변경은 새로운 캡처 제출 전 별도 신규 가구 등록을 사용.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": ""
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "BED",
+              "SOFA",
+              "DESK",
+              "TABLE",
+              "CHAIR",
+              "WARDROBE",
+              "SHELF",
+              "REFRIGERATOR",
+              "WASHING_MACHINE",
+              "AIR_CONDITIONER",
+              "TV",
+              "OTHER",
+              "bed",
+              "desk",
+              "sofa",
+              "closet",
+              "storage",
+              "chair",
+              "other"
+            ],
+            "description": ""
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "minProperties": 1,
+        "examples": [
+          {
+            "name": "작업용 책상"
+          }
+        ]
+      },
+      "Sam3dJobCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "type": "string",
+            "pattern": "^data:image/png;base64,"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "width": {
+                "type": "number",
+                "minimum": 0.02,
+                "maximum": 20
+              },
+              "height": {
+                "type": "number",
+                "minimum": 0.02,
+                "maximum": 20
+              },
+              "depth": {
+                "type": "number",
+                "minimum": 0.02,
+                "maximum": 20
+              }
+            },
+            "required": [
+              "width",
+              "height",
+              "depth"
+            ]
+          }
+        },
+        "required": [
+          "image",
+          "name",
+          "dimensions"
+        ]
+      },
+      "Sam3dImport": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "studioJobId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "BED",
+              "DESK",
+              "SOFA",
+              "WARDROBE",
+              "SHELF",
+              "CHAIR",
+              "OTHER"
+            ]
+          }
+        },
+        "required": [
+          "studioJobId",
+          "name",
+          "category"
         ]
       }
     },
