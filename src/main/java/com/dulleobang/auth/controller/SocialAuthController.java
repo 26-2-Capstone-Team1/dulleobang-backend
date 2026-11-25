@@ -6,7 +6,7 @@ import com.dulleobang.common.contract.JsonInput;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/api/auth", "/api/v1/auth"})
+@RequestMapping("/api/auth")
 public class SocialAuthController {
   private final SocialAuthService auth;
   private final JsonInput input;

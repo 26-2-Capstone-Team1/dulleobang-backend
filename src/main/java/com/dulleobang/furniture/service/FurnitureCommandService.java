@@ -57,7 +57,7 @@ public class FurnitureCommandService {
               201,
               StrictJson.stringify(
                   FurnitureMapper.response(query.owned(actor, id, false, false), mobile)),
-              Map.of("Location", "/api/v1/furniture/" + id, "ETag", "\"1\""));
+              Map.of("Location", "/api/furniture/" + id, "ETag", "\"1\""));
         });
   }
 
@@ -68,7 +68,7 @@ public class FurnitureCommandService {
     repository.patch(
         id,
         input.path("name").asText(item.name()),
-        input.path("category").asText(item.category()),
+        FurnitureCategoryMapper.canonical(input.path("category").asText(item.category())),
         clock.instant());
     return query.get(actor, id, null);
   }

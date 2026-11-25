@@ -26,7 +26,7 @@ public class ChatController {
     this.parameters = parameters;
   }
 
-  @PostMapping({"/api/chat", "/api/v1/chats"})
+  @PostMapping("/api/chat")
   public ResponseEntity<String> create(
       Principal actor,
       HttpServletRequest request,
@@ -40,32 +40,30 @@ public class ChatController {
             UUID.fromString(input.read(body, type, "ChatCreate").path("listingId").asText()),
             request.getRequestURI(),
             key,
-            mobile(request)));
+            true));
   }
 
-  @GetMapping({"/api/chat", "/api/v1/chats"})
+  @GetMapping("/api/chat")
   public ResponseEntity<String> list(
       Principal actor,
       HttpServletRequest request,
       @RequestParam MultiValueMap<String, String> raw) {
-    boolean mobile = mobile(request);
     return HttpResponses.json(
         rooms.list(
             UUID.fromString(actor.getName()),
             request.getRequestURI(),
             parameters.read("getChats", raw),
-            mobile,
-            mobile && !raw.containsKey("limit") && !raw.containsKey("cursor")));
+            true,
+            !raw.containsKey("limit") && !raw.containsKey("cursor")));
   }
 
-  @GetMapping({"/api/chat/{id}", "/api/v1/chats/{id}"})
-  public ResponseEntity<String> get(
-      Principal actor, HttpServletRequest request, @PathVariable UUID id) {
+  @GetMapping("/api/chat/{id}")
+  public ResponseEntity<String> get(Principal actor, @PathVariable UUID id) {
     UUID user = UUID.fromString(actor.getName());
-    return HttpResponses.json(messages.detail(user, id, mobile(request)));
+    return HttpResponses.json(messages.detail(user, id, true));
   }
 
-  @PostMapping({"/api/chat/{id}", "/api/v1/chats/{id}/messages"})
+  @PostMapping("/api/chat/{id}")
   public ResponseEntity<String> send(
       Principal actor,
       HttpServletRequest request,
@@ -74,22 +72,18 @@ public class ChatController {
       @RequestHeader(value = "Content-Type", required = false) String type,
       @RequestHeader(value = "Idempotency-Key", required = false) String key) {
     IdempotencyService.requireKey(key);
-    boolean mobile = mobile(request);
-    var value =
-        mobile
-            ? input.readMobile(body, type, "MobilesendChatMessage")
-            : input.read(body, type, "ChatMessageCreate");
+    var value = input.readMobile(body, type, "MobilesendChatMessage");
     return HttpResponses.stored(
         messages.send(
             UUID.fromString(actor.getName()),
             id,
             request.getRequestURI(),
             key,
-            value.path(mobile ? "message" : "text").asText(),
-            mobile));
+            value.path("message").asText(),
+            true));
   }
 
-  @GetMapping("/api/v1/chats/{id}/messages")
+  @GetMapping("/api/chat/{id}/messages")
   public ResponseEntity<String> messages(
       Principal actor,
       HttpServletRequest request,
@@ -103,7 +97,7 @@ public class ChatController {
             parameters.read("getChatMessages", raw)));
   }
 
-  @PostMapping("/api/v1/chats/{id}/read")
+  @PostMapping("/api/chat/{id}/read")
   public ResponseEntity<Void> read(
       Principal actor,
       @PathVariable UUID id,
@@ -114,9 +108,5 @@ public class ChatController {
         id,
         UUID.fromString(input.read(body, type, "ChatRead").path("lastReadMessageId").asText()));
     return ResponseEntity.noContent().build();
-  }
-
-  private boolean mobile(HttpServletRequest request) {
-    return !request.getRequestURI().startsWith("/api/v1/");
   }
 }

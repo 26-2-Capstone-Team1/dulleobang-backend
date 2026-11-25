@@ -33,20 +33,16 @@ public class PlacementController {
     this.parameters = parameters;
   }
 
-  @GetMapping({"/api/listings/{id}/placements", "/api/v1/listings/{id}/placements"})
+  @GetMapping("/api/listings/{id}/placements")
   public ResponseEntity<String> get(
-      Principal actor,
-      HttpServletRequest request,
-      @PathVariable UUID id,
-      @RequestParam MultiValueMap<String, String> raw) {
+      Principal actor, @PathVariable UUID id, @RequestParam MultiValueMap<String, String> raw) {
     parameters.read("getPlacements", raw);
-    return response(query.get(UUID.fromString(actor.getName()), id), isMobile(request));
+    return response(query.get(UUID.fromString(actor.getName()), id));
   }
 
-  @PutMapping({"/api/listings/{id}/placements", "/api/v1/listings/{id}/placements"})
+  @PutMapping("/api/listings/{id}/placements")
   public ResponseEntity<String> save(
       Principal actor,
-      HttpServletRequest request,
       @PathVariable UUID id,
       @RequestBody(required = false) byte[] body,
       @RequestHeader(value = "Content-Type", required = false) String type,
@@ -54,16 +50,11 @@ public class PlacementController {
       @RequestHeader(value = "If-None-Match", required = false) String none,
       @RequestParam MultiValueMap<String, String> raw) {
     parameters.read("savePlacements", raw);
-    boolean app = isMobile(request);
-    var value =
-        app
-            ? input.readMobile(body, type, "MobilesavePlacements")
-            : input.read(body, type, "PlacementPut");
-    return response(
-        command.save(UUID.fromString(actor.getName()), id, value, match, none, app), app);
+    var value = input.readMobile(body, type, "MobilesavePlacements");
+    return response(command.save(UUID.fromString(actor.getName()), id, value, match, none, true));
   }
 
-  @DeleteMapping("/api/v1/listings/{id}/placements")
+  @DeleteMapping("/api/listings/{id}/placements")
   public ResponseEntity<Void> delete(
       Principal actor,
       @PathVariable UUID id,
@@ -74,7 +65,7 @@ public class PlacementController {
     return ResponseEntity.noContent().build();
   }
 
-  @GetMapping("/api/v1/users/me/placements")
+  @GetMapping("/api/users/me/placements")
   public ResponseEntity<String> list(
       Principal actor,
       HttpServletRequest request,
@@ -89,14 +80,10 @@ public class PlacementController {
         .body(StrictJson.stringify(result));
   }
 
-  private boolean isMobile(HttpServletRequest request) {
-    return !request.getRequestURI().startsWith("/api/v1/");
-  }
-
-  private ResponseEntity<String> response(PlacementRecord record, boolean app) {
+  private ResponseEntity<String> response(PlacementRecord record) {
     return ResponseEntity.ok()
         .eTag("\"" + record.version() + "\"")
         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-        .body(StrictJson.stringify(app ? mobile.response(record.value()) : record.value()));
+        .body(StrictJson.stringify(mobile.response(record.value())));
   }
 }

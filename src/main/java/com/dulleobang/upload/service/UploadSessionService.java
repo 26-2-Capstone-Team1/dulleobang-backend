@@ -56,7 +56,7 @@ public class UploadSessionService {
     return new StoredResponse(
         201,
         StrictJson.stringify(Map.of("session", get(actor, id), "uploads", grants.grants(id))),
-        Map.of("Location", "/api/v1/upload-sessions/" + id));
+        Map.of("Location", "/api/upload-sessions/" + id));
   }
 
   public UploadSession owned(UUID actor, UUID id, boolean lock, boolean live) {

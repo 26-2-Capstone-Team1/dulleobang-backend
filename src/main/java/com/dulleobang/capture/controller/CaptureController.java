@@ -23,7 +23,9 @@ public class CaptureController {
     this.input = input;
   }
 
-  @PostMapping({"/api/v1/listings/{id}/captures", "/api/v1/furniture/{id}/captures"})
+  @PostMapping(
+      value = {"/api/listings/{id}/captures", "/api/furniture/{id}/captures"},
+      consumes = "application/json")
   public ResponseEntity<String> submit(
       Principal actor,
       HttpServletRequest request,
@@ -40,11 +42,11 @@ public class CaptureController {
             id,
             UUID.fromString(
                 input.read(body, type, "CaptureSubmit").path("uploadSessionId").asText()),
-            request.getRequestURI(),
+            "/api/v1" + request.getRequestURI().substring("/api".length()),
             key));
   }
 
-  @GetMapping("/api/v1/captures/{id}")
+  @GetMapping("/api/captures/{id}")
   public ResponseEntity<String> get(Principal actor, @PathVariable UUID id) {
     return ResponseEntity.ok()
         .header("Content-Type", "application/json")

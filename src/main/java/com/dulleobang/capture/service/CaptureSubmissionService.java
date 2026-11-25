@@ -91,7 +91,7 @@ public class CaptureSubmissionService {
                 "QUEUED",
                 "pollAfterSeconds",
                 3)),
-        Map.of("Location", "/api/v1/ai-jobs/" + job.id(), "Retry-After", "3"));
+        Map.of("Location", "/api/ai-jobs/" + job.id(), "Retry-After", "3"));
   }
 
   public void reserve(UUID actor, String type, UUID id) {

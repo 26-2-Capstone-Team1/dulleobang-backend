@@ -89,7 +89,7 @@ public class RoomStateCommandService {
         StrictJson.stringify(
             Map.of(
                 "roomStateId", id, "jobId", job.id(), "status", "QUEUED", "pollAfterSeconds", 3)),
-        Map.of("Location", "/api/v1/ai-jobs/" + job.id(), "Retry-After", "3"));
+        Map.of("Location", "/api/ai-jobs/" + job.id(), "Retry-After", "3"));
   }
 
   private List<UUID> removals(JsonNode body, SpaceRecord source) {

@@ -8,7 +8,6 @@ import com.dulleobang.listing.dto.ListingResponse;
 import com.dulleobang.listing.mapper.MobileSearchMapper;
 import com.dulleobang.listing.repository.ListingRepository;
 import com.dulleobang.listing.validation.ListingSearchPolicy;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
@@ -17,8 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ListingQueryService {
-  public record Versioned<T>(T body, long version) {}
-
   private final ListingRepository repository;
   private final ListingAccessService access;
   private final ListingViewService views;
@@ -44,18 +41,13 @@ public class ListingQueryService {
     this.mobileSearch = mobileSearch;
   }
 
-  public Versioned<ListingResponse> getMobile(UUID actor, UUID id) {
+  public ListingResponse.Versioned get(UUID actor, UUID id) {
     var item = access.get(actor, id, false, false, false);
-    return new Versioned<>(views.mobile(actor, item), item.version());
-  }
-
-  public Versioned<ObjectNode> getLegacy(UUID actor, UUID id) {
-    var item = access.get(actor, id, false, false, false);
-    return new Versioned<>(views.canonical(actor, item, false), item.version());
+    return new ListingResponse.Versioned(views.mobile(actor, item), item.version());
   }
 
   @Transactional(isolation = Isolation.REPEATABLE_READ)
-  public ListingPage<ListingResponse> listMobile(
+  public ListingPage<ListingResponse> list(
       UUID actor, Map<String, List<String>> raw, boolean mine) {
     var q = read(mine ? raw : mobileSearch.convert(raw), mine);
     return list(
@@ -65,18 +57,6 @@ public class ListingQueryService {
         mine,
         !raw.containsKey("limit") && !raw.containsKey("cursor"),
         item -> views.mobile(actor, item));
-  }
-
-  @Transactional(isolation = Isolation.REPEATABLE_READ)
-  public ListingPage<ObjectNode> listLegacy(
-      UUID actor, Map<String, List<String>> raw, boolean mine) {
-    return list(
-        actor,
-        mine ? "/api/v1/users/me/listings" : "/api/v1/listings",
-        read(raw, mine),
-        mine,
-        false,
-        item -> views.canonical(actor, item, true));
   }
 
   private Map<String, Object> read(Map<String, List<String>> raw, boolean mine) {

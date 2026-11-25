@@ -23,7 +23,7 @@ public class FurnitureController {
     this.input = input;
   }
 
-  @PostMapping({"/api/furniture", "/api/v1/furniture"})
+  @PostMapping("/api/furniture")
   public ResponseEntity<String> create(
       Principal actor,
       HttpServletRequest request,
@@ -31,20 +31,14 @@ public class FurnitureController {
       @RequestHeader(value = "Content-Type", required = false) String type,
       @RequestHeader(value = "Idempotency-Key", required = false) String key) {
     IdempotencyService.requireKey(key);
-    boolean mobile = !request.getRequestURI().startsWith("/api/v1/");
-    var json =
-        mobile
-            ? input.readMobile(body, type, "MobilecreateFurniture")
-            : input.read(body, type, "FurnitureCreate");
+    var json = input.readMobile(body, type, "MobilecreateFurniture");
     return HttpResponses.stored(
-        command.create(
-            UUID.fromString(actor.getName()), request.getRequestURI(), key, json, mobile));
+        command.create(UUID.fromString(actor.getName()), request.getRequestURI(), key, json, true));
   }
 
-  @GetMapping({"/api/furniture/{id}", "/api/v1/furniture/{id}"})
+  @GetMapping("/api/furniture/{id}")
   public ResponseEntity<String> get(
       Principal actor,
-      HttpServletRequest request,
       @PathVariable UUID id,
       @RequestParam(required = false) Integer modelVersion) {
     if (modelVersion != null && modelVersion < 1)
@@ -54,25 +48,23 @@ public class FurnitureController {
         .eTag("\"" + item.version() + "\"")
         .header("Content-Type", "application/json")
         .body(
-            com.dulleobang.common.json.StrictJson.stringify(
-                FurnitureMapper.response(item, !request.getRequestURI().startsWith("/api/v1/"))));
+            com.dulleobang.common.json.StrictJson.stringify(FurnitureMapper.response(item, true)));
   }
 
-  @GetMapping({"/api/users/me/furniture", "/api/v1/users/me/furniture"})
+  @GetMapping("/api/users/me/furniture")
   public ResponseEntity<String> list(
       Principal actor,
       HttpServletRequest request,
       @RequestParam(required = false) String status,
       @RequestParam(defaultValue = "20") int limit,
       @RequestParam(required = false) String cursor) {
-    boolean mobile = !request.getRequestURI().startsWith("/api/v1/");
     var result =
-        mobile && request.getParameter("limit") == null && cursor == null
+        request.getParameter("limit") == null && cursor == null
             ? query.all(UUID.fromString(actor.getName()), status)
             : query.list(
                 UUID.fromString(actor.getName()),
                 request.getRequestURI(),
-                mobile,
+                true,
                 status,
                 limit,
                 cursor);
@@ -81,7 +73,7 @@ public class FurnitureController {
         .body(com.dulleobang.common.json.StrictJson.stringify(result));
   }
 
-  @PatchMapping("/api/v1/furniture/{id}")
+  @PatchMapping("/api/furniture/{id}")
   public ResponseEntity<String> patch(
       Principal actor,
       @PathVariable UUID id,
@@ -90,15 +82,18 @@ public class FurnitureController {
       @RequestHeader(value = "If-Match", required = false) String etag) {
     var item =
         command.patch(
-            UUID.fromString(actor.getName()), id, etag, input.read(body, type, "FurniturePatch"));
+            UUID.fromString(actor.getName()),
+            id,
+            etag,
+            input.readMobile(body, type, "AppFurniturePatch"));
     return ResponseEntity.ok()
         .eTag("\"" + item.version() + "\"")
         .header("Content-Type", "application/json")
         .body(
-            com.dulleobang.common.json.StrictJson.stringify(FurnitureMapper.response(item, false)));
+            com.dulleobang.common.json.StrictJson.stringify(FurnitureMapper.response(item, true)));
   }
 
-  @DeleteMapping("/api/v1/furniture/{id}")
+  @DeleteMapping("/api/furniture/{id}")
   public ResponseEntity<Void> delete(
       Principal actor,
       @PathVariable UUID id,

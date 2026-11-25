@@ -77,7 +77,7 @@ public class ChatRoomService {
               return new StoredResponse(
                   existing.isPresent() ? 200 : 201,
                   StrictJson.stringify(views.room(actor, room, false, mobile)),
-                  Map.of("Location", "/api/v1/chats/" + room.id()));
+                  Map.of("Location", "/api/chat/" + room.id()));
             }));
   }
 

@@ -81,7 +81,7 @@ public class JobRetryService {
               202,
               StrictJson.stringify(
                   Map.of("jobId", created.id(), "status", "QUEUED", "pollAfterSeconds", 3)),
-              Map.of("Location", "/api/v1/ai-jobs/" + created.id(), "Retry-After", "3"));
+              Map.of("Location", "/api/ai-jobs/" + created.id(), "Retry-After", "3"));
         });
   }
 }

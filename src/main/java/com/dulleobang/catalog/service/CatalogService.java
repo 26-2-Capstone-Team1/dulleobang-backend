@@ -148,8 +148,7 @@ public class CatalogService {
     return new StoredResponse(
         201,
         StrictJson.stringify(body),
-        Map.of(
-            "Location", (mobile ? "/api/furniture/" : "/api/v1/furniture/") + id, "ETag", "\"1\""));
+        Map.of("Location", "/api/furniture/" + id, "ETag", "\"1\""));
   }
 
   private AssetFile copy(AssetFile source, UUID owner, UUID furnitureId, Instant now) {

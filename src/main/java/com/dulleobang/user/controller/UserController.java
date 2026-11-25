@@ -23,12 +23,12 @@ public class UserController {
     this.input = input;
   }
 
-  @GetMapping({"/api/users/me", "/api/v1/users/me"})
+  @GetMapping("/api/users/me")
   public ResponseEntity<UserResponse> me(Principal actor) {
     return response(users.get(UUID.fromString(actor.getName())));
   }
 
-  @PatchMapping("/api/v1/users/me")
+  @PatchMapping("/api/users/me")
   public ResponseEntity<UserResponse> patch(
       Principal actor,
       @RequestBody(required = false) byte[] body,
@@ -38,7 +38,7 @@ public class UserController {
         users.patch(UUID.fromString(actor.getName()), etag, input.read(body, type, "UserPatch")));
   }
 
-  @DeleteMapping({"/api/users/me", "/api/v1/users/me"})
+  @DeleteMapping("/api/users/me")
   public ResponseEntity<Void> delete(Principal actor) {
     deletion.delete(UUID.fromString(actor.getName()));
     return ResponseEntity.noContent().build();

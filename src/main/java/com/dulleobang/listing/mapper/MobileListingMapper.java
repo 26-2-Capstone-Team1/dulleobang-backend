@@ -58,7 +58,11 @@ public class MobileListingMapper {
         integer(value, "roomCount"),
         integer(value, "bathroomCount"),
         text(value, "availableFrom"),
-        text(value, "livingEnvironment"));
+        text(value, "livingEnvironment"),
+        text(value, "title"),
+        text(value, "description"),
+        text(location, "detailAddress"),
+        text(location, "regionCode"));
   }
 
   private BigDecimal money(JsonNode value, String field) {
