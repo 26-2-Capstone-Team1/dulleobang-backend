@@ -2,6 +2,12 @@
 
 Java 21, Spring Boot, PostgreSQL 기반 API입니다. AI 작업 처리는 [AI 워커](ai_worker/README.md)를 실행합니다.
 
+## API와 브랜치
+
+앱은 `/api`를 사용합니다. 기존 `/api/v1` 호출과 워커의 내부 API는 호환 계약을 유지합니다.
+
+`main`은 릴리스, `develop`은 통합 브랜치입니다. 새 기능은 `develop`에서 작업 브랜치를 만들어 통합합니다. 자세한 결정은 [앱 매물 API](docs/adr/0001-app-listing-contract.md), [PostgreSQL 데이터 접근](docs/adr/0002-postgresql-access.md), [Git Flow](docs/adr/0003-git-flow.md)에 있습니다.
+
 ## Windows 로컬 실행
 
 JDK 21과 Docker Compose를 준비한 뒤 저장소 루트에서 실행합니다.

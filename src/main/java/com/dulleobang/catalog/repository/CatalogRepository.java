@@ -13,6 +13,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -31,13 +33,41 @@ public class CatalogRepository {
               rs.getTimestamp("imported_at").toInstant());
 
   private final JdbcTemplate jdbc;
+  private final NamedParameterJdbcTemplate named;
 
   public CatalogRepository(JdbcTemplate jdbc) {
     this.jdbc = jdbc;
+    this.named = new NamedParameterJdbcTemplate(jdbc);
   }
 
-  public List<CatalogItem> list() {
-    return jdbc.query("SELECT * FROM catalog_furniture ORDER BY catalog_id", ITEM);
+  public List<String> searchIds(String category, String search) {
+    var sql = new StringBuilder("SELECT catalog_id FROM catalog_furniture WHERE TRUE");
+    var params = new MapSqlParameterSource();
+    if (category != null) {
+      sql.append(" AND category = :category");
+      params.addValue("category", category);
+    }
+    if (!search.isEmpty()) {
+      sql.append(
+          " AND (strpos(lower(name), :search) > 0"
+              + " OR strpos(lower(substr(catalog_id, :articleStart)), :search) > 0)");
+      params.addValue("search", search);
+      params.addValue("articleStart", CatalogItem.ID_PREFIX.length() + 1);
+    }
+    return named.queryForList(sql.append(" ORDER BY catalog_id").toString(), params, String.class);
+  }
+
+  public List<CatalogItem> findOrdered(List<String> ids) {
+    if (ids.isEmpty()) return List.of();
+    return named.query(
+        """
+        SELECT catalog_furniture.*
+        FROM jsonb_array_elements_text(CAST(:ids AS jsonb)) WITH ORDINALITY AS page(id, position)
+        JOIN catalog_furniture ON catalog_furniture.catalog_id = page.id
+        ORDER BY page.position
+        """,
+        Map.of("ids", StrictJson.stringify(ids)),
+        ITEM);
   }
 
   public Optional<CatalogItem> find(String catalogId, boolean lock) {

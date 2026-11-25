@@ -1,6 +1,8 @@
 package com.dulleobang.listing.service;
 
+import com.dulleobang.common.json.StrictJson;
 import com.dulleobang.listing.domain.ListingRecord;
+import com.dulleobang.listing.dto.ListingResponse;
 import com.dulleobang.listing.mapper.*;
 import com.dulleobang.listing.repository.ListingRepository;
 import com.dulleobang.upload.service.AssetPresentationService;
@@ -42,10 +44,16 @@ public class ListingViewService {
   }
 
   public ObjectNode response(UUID actor, ListingRecord listing, boolean summary, boolean app) {
-    return app ? mobile(canonical(actor, listing, false)) : canonical(actor, listing, summary);
+    return app
+        ? (ObjectNode) StrictJson.parse(StrictJson.stringify(mobile(actor, listing)))
+        : canonical(actor, listing, summary);
   }
 
   public ObjectNode mobile(ObjectNode value) {
-    return mobile.convert(value);
+    return (ObjectNode) StrictJson.parse(StrictJson.stringify(mobile.convert(value)));
+  }
+
+  public ListingResponse mobile(UUID actor, ListingRecord listing) {
+    return mobile.convert(canonical(actor, listing, false));
   }
 }

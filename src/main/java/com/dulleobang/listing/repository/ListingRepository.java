@@ -93,9 +93,29 @@ public class ListingRepository {
         .findFirst();
   }
 
-  public List<ListingRecord> all() {
-    return jdbc.query(
-        "SELECT * FROM listings WHERE deleted_at IS NULL ORDER BY created_at DESC,listing_id",
+  public List<String> searchIds(UUID owner, Map<String, Object> filters) {
+    var search = ListingSearchSql.build(owner, filters);
+    return named.queryForList(
+        "SELECT listing_id::text FROM listings" + search.suffix(),
+        search.parameters(),
+        String.class);
+  }
+
+  public List<ListingRecord> search(UUID owner, Map<String, Object> filters) {
+    var search = ListingSearchSql.build(owner, filters);
+    return named.query("SELECT * FROM listings" + search.suffix(), search.parameters(), mapper);
+  }
+
+  public List<ListingRecord> findOrdered(List<String> ids) {
+    if (ids.isEmpty()) return List.of();
+    return named.query(
+        """
+        SELECT listings.*
+        FROM jsonb_array_elements_text(CAST(:ids AS jsonb)) WITH ORDINALITY AS page(id, position)
+        JOIN listings ON listings.listing_id = CAST(page.id AS uuid)
+        ORDER BY page.position
+        """,
+        Map.of("ids", StrictJson.stringify(ids)),
         mapper);
   }
 
