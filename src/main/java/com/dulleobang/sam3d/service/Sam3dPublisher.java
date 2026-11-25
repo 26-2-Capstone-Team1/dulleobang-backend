@@ -108,6 +108,6 @@ public class Sam3dPublisher {
                     "SAM 3D Objects",
                     "collisionApproximation",
                     "BOUNDING_BOX"))),
-        Map.of("Location", "/api/v1/furniture/" + id, "ETag", "\"" + item.version() + "\""));
+        Map.of("Location", "/api/furniture/" + id, "ETag", "\"" + item.version() + "\""));
   }
 }

@@ -18,11 +18,7 @@ public class ZipCaptureController {
   }
 
   @PostMapping(
-      value = {
-        "/api/listings/{id}/captures",
-        "/api/furniture/{id}/captures",
-        "/api/v1/listings/{id}/captures/zip"
-      },
+      value = {"/api/listings/{id}/captures", "/api/furniture/{id}/captures"},
       consumes = "application/zip")
   public ResponseEntity<String> submit(
       Principal actor,

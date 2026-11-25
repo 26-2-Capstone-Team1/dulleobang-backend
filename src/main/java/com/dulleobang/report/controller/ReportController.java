@@ -35,7 +35,7 @@ public class ReportController {
     this.contracts = contracts;
   }
 
-  @PostMapping({"/api/listings/{id}/reports", "/api/v1/listings/{id}/reports"})
+  @PostMapping("/api/listings/{id}/reports")
   public ResponseEntity<String> create(
       Principal actor,
       HttpServletRequest request,
@@ -44,16 +44,9 @@ public class ReportController {
       @RequestHeader(value = "Content-Type", required = false) String type,
       @RequestHeader(value = "Idempotency-Key", required = false) String key) {
     IdempotencyService.requireKey(key);
-    boolean mobile = !request.getRequestURI().startsWith("/api/v1/");
-    var json =
-        (ObjectNode)
-            (mobile
-                ? input.readMobile(body, type, "MobilecreateListingReport")
-                : input.read(body, type, "ListingReportCreate"));
-    if (mobile)
-      json.put(
-          "reason",
-          REASONS.getOrDefault(json.path("reason").asText(), json.path("reason").asText()));
+    var json = (ObjectNode) input.readMobile(body, type, "MobilecreateListingReport");
+    var reason = json.path("reason").asText();
+    json.put("reason", REASONS.getOrDefault(reason, reason));
     if (json.path("detail").isNull()) json.remove("detail");
     contracts.validate("ListingReportCreate", StrictJson.stringify(json));
     return HttpResponses.stored(

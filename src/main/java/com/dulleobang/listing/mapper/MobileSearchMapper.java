@@ -16,7 +16,7 @@ public class MobileSearchMapper {
                 400, "AMBIGUOUS_QUERY_PARAMETER");
           values.put(pair.getValue(), values.remove(pair.getKey()));
         }
-      for (String key : List.of("maxDeposit", "maxMonthlyRent"))
+      for (String key : List.of("minDeposit", "maxDeposit", "minMonthlyRent", "maxMonthlyRent"))
         if (values.containsKey(key)) {
           try {
             values.put(

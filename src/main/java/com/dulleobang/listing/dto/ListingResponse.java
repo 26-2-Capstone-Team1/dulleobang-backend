@@ -28,7 +28,13 @@ public record ListingResponse(
     @JsonInclude(JsonInclude.Include.NON_NULL) Integer rooms,
     @JsonInclude(JsonInclude.Include.NON_NULL) Integer bathrooms,
     @JsonInclude(JsonInclude.Include.NON_NULL) String availableFrom,
-    @JsonInclude(JsonInclude.Include.NON_NULL) String livingEnvironment) {
+    @JsonInclude(JsonInclude.Include.NON_NULL) String livingEnvironment,
+    @JsonInclude(JsonInclude.Include.NON_NULL) String title,
+    @JsonInclude(JsonInclude.Include.NON_NULL) String description,
+    @JsonInclude(JsonInclude.Include.NON_NULL) String detailAddress,
+    @JsonInclude(JsonInclude.Include.NON_NULL) String regionCode) {
+  public record Versioned(ListingResponse body, long version) {}
+
   public record Price(BigDecimal deposit, BigDecimal monthly) {}
 
   public record Agent(

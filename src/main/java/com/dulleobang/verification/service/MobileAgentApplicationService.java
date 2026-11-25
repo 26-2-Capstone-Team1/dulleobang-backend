@@ -56,7 +56,7 @@ public class MobileAgentApplicationService {
           return new StoredResponse(
               201,
               StrictJson.stringify(agents.get(actor, true)),
-              Map.of("Location", "/api/v1/users/me/listing-agent-verification"));
+              Map.of("Location", "/api/users/me/agent-profile"));
         });
   }
 }

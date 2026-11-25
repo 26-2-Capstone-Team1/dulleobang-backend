@@ -4,7 +4,6 @@ import com.dulleobang.common.contract.*;
 import com.dulleobang.common.idempotency.service.IdempotencyService;
 import com.dulleobang.common.json.StrictJson;
 import com.dulleobang.verification.service.AgentVerificationService;
-import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.*;
 import org.springframework.http.ResponseEntity;
@@ -20,18 +19,14 @@ public class AgentVerificationController {
     this.input = input;
   }
 
-  @GetMapping({"/api/v1/users/me/listing-agent-verification", "/api/users/me/agent-profile"})
-  public ResponseEntity<String> get(Principal actor, HttpServletRequest request) {
+  @GetMapping("/api/users/me/agent-profile")
+  public ResponseEntity<String> get(Principal actor) {
     return ResponseEntity.ok()
         .header("Content-Type", "application/json")
-        .body(
-            StrictJson.stringify(
-                agents.get(
-                    UUID.fromString(actor.getName()),
-                    request.getRequestURI().equals("/api/users/me/agent-profile"))));
+        .body(StrictJson.stringify(agents.get(UUID.fromString(actor.getName()), true)));
   }
 
-  @PostMapping("/api/v1/users/me/listing-agent-verification")
+  @PostMapping(value = "/api/users/me/agent-profile", consumes = "application/json")
   public ResponseEntity<String> create(
       Principal actor,
       @RequestBody(required = false) byte[] body,

@@ -6,16 +6,15 @@ import com.dulleobang.common.idempotency.*;
 import com.dulleobang.common.idempotency.service.IdempotencyService;
 import com.dulleobang.common.json.StrictJson;
 import com.dulleobang.common.version.ETagParser;
-import com.dulleobang.listing.domain.ListingRecord;
 import com.dulleobang.listing.dto.ListingCreateRequest;
+import com.dulleobang.listing.dto.ListingResponse;
 import com.dulleobang.listing.mapper.MobileListingInputMapper;
 import com.dulleobang.listing.repository.ListingRepository;
 import com.dulleobang.listing.validation.ListingFieldsPolicy;
 import com.dulleobang.upload.repository.UploadRepository;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Clock;
 import java.util.*;
-import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,28 +54,14 @@ public class ListingCommandService {
     this.jobs = jobs;
   }
 
-  public StoredResponse createMobile(UUID actor, String key, ListingCreateRequest request) {
+  public StoredResponse create(UUID actor, String key, ListingCreateRequest request) {
     var input = mobileInput.convert(request);
     contracts.validate("ListingCreate", StrictJson.stringify(input));
-    return create(actor, "/api/listings", key, input, item -> views.mobile(actor, item));
-  }
-
-  public StoredResponse createLegacy(UUID actor, String key, JsonNode input) {
-    return create(
-        actor, "/api/v1/listings", key, input, item -> views.canonical(actor, item, false));
-  }
-
-  private StoredResponse create(
-      UUID actor,
-      String path,
-      String key,
-      JsonNode input,
-      Function<ListingRecord, Object> present) {
     var validated = fields.merge(input, null);
     return idempotency.execute(
         actor.toString(),
         "POST",
-        path,
+        "/api/listings",
         key,
         StrictJson.stringify(input),
         () -> {
@@ -85,16 +70,18 @@ public class ListingCommandService {
           var item = access.get(actor, id, true, false, false);
           return new StoredResponse(
               201,
-              StrictJson.stringify(present.apply(item)),
-              Map.of("Location", "/api/v1/listings/" + id, "ETag", "\"1\""));
+              StrictJson.stringify(views.mobile(actor, item)),
+              Map.of("Location", "/api/listings/" + id, "ETag", "\"1\""));
         });
   }
 
   @Transactional
-  public JsonNode patch(UUID actor, UUID id, String etag, JsonNode input) {
+  public ListingResponse.Versioned patch(UUID actor, UUID id, String etag, ObjectNode request) {
     var item = access.get(actor, id, true, true, false);
     ETagParser.requireMatch(etag, item.version());
     if (item.status().equals("ARCHIVED")) throw new ApiException(409, "INVALID_STATE");
+    var input = mobileInput.patch(request, item.fields());
+    contracts.validate("ListingPatch", StrictJson.stringify(input));
     var update = fields.merge(input, item.fields());
     if (input.has("photoFileIds")) {
       if (item.status().equals("PUBLISHED") && input.path("photoFileIds").isEmpty())
@@ -119,11 +106,11 @@ public class ListingCommandService {
       repository.replacePhotos(id, sources, derived);
     }
     repository.write(id, update, clock.instant(), true);
-    return views.response(actor, access.get(actor, id, true, false, false), false, false);
+    return current(actor, id);
   }
 
   @Transactional
-  public JsonNode publication(UUID actor, UUID id, String etag, String status) {
+  public ListingResponse.Versioned publication(UUID actor, UUID id, String etag, String status) {
     var item = access.get(actor, id, true, true, false);
     ETagParser.requireMatch(etag, item.version());
     if (item.status().equals("ARCHIVED") && status.equals("PUBLISHED"))
@@ -135,7 +122,12 @@ public class ListingCommandService {
     if (status.equals("ARCHIVED") && !item.fields().path("activeJobId").isNull())
       throw new ApiException(409, "ACTIVE_JOB_EXISTS");
     if (!item.status().equals(status)) repository.publication(id, status, clock.instant());
-    return views.response(actor, access.get(actor, id, true, false, false), false, false);
+    return current(actor, id);
+  }
+
+  private ListingResponse.Versioned current(UUID actor, UUID id) {
+    var item = access.get(actor, id, true, false, false);
+    return new ListingResponse.Versioned(views.mobile(actor, item), item.version());
   }
 
   @Transactional

@@ -20,29 +20,23 @@ public class ScrapController {
     this.parameters = parameters;
   }
 
-  @PutMapping("/api/v1/listings/{id}/scrap")
-  public ResponseEntity<Void> put(Principal actor, @PathVariable UUID id) {
+  @PostMapping("/api/listings/{id}/scrap")
+  public ResponseEntity<Void> save(Principal actor, @PathVariable UUID id) {
     scraps.save(UUID.fromString(actor.getName()), id);
     return ResponseEntity.noContent().build();
   }
 
-  @PostMapping("/api/listings/{id}/scrap")
-  public ResponseEntity<Void> post(Principal actor, @PathVariable UUID id) {
-    return put(actor, id);
-  }
-
-  @DeleteMapping({"/api/listings/{id}/scrap", "/api/v1/listings/{id}/scrap"})
+  @DeleteMapping("/api/listings/{id}/scrap")
   public ResponseEntity<Void> delete(Principal actor, @PathVariable UUID id) {
     scraps.delete(UUID.fromString(actor.getName()), id);
     return ResponseEntity.noContent().build();
   }
 
-  @GetMapping({"/api/users/me/scraps", "/api/v1/users/me/scraps"})
+  @GetMapping("/api/users/me/scraps")
   public ResponseEntity<String> list(
       Principal actor,
       HttpServletRequest request,
       @RequestParam MultiValueMap<String, String> raw) {
-    boolean mobile = !request.getRequestURI().startsWith("/api/v1/");
     return ResponseEntity.ok()
         .header("Content-Type", "application/json")
         .body(
@@ -51,7 +45,7 @@ public class ScrapController {
                     UUID.fromString(actor.getName()),
                     request.getRequestURI(),
                     parameters.read("getScraps", raw),
-                    mobile,
-                    mobile && !raw.containsKey("limit") && !raw.containsKey("cursor"))));
+                    true,
+                    !raw.containsKey("limit") && !raw.containsKey("cursor"))));
   }
 }
