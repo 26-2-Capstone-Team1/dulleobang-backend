@@ -1,22 +1,18 @@
 services:
-  backend:
-    build: .
+  postgres:
+    image: postgres:17.11
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:5433:5432"
     environment:
-      APP_ENV: development
-      PUBLIC_BASE_URL: http://127.0.0.1:8000
-      DATA_DIR: /srv/data
-      KAKAO_APP_ID: ${KAKAO_APP_ID:-}
-      GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS:-}
+      POSTGRES_DB: dulleobang_v2
+      POSTGRES_USER: dulleobang
+      POSTGRES_PASSWORD: local-v2-only
     volumes:
-      - backend-data:/srv/data
-    restart: unless-stopped
+      - v2-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U dulleobang -d dulleobang_v2"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 volumes:
-  backend-data:
-
+  v2-postgres:

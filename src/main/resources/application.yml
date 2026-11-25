@@ -1,0 +1,30 @@
+server:
+  port: ${PORT:8081}
+  error:
+    include-message: never
+spring:
+  application:
+    name: dulleobang-backend-v2
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/dulleobang_v2}
+    username: ${DB_USER:dulleobang}
+    password: ${DB_PASSWORD:local-v2-only}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 601MB
+dulleobang:
+  data-dir: ${V2_DATA_DIR:.runtime/data}
+  jwt-secret: ${JWT_SECRET:}
+  worker-secret: ${WORKER_JWT_SECRET:}
+  storage-secret: ${STORAGE_SECRET:}
+  cors-origins: ${CORS_ORIGINS:}
+  sam3d:
+    enabled: ${SAM3D_ENABLED:false}
+    url: ${SAM3D_URL:http://127.0.0.1:18766}

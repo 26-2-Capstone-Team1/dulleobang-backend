@@ -1,1 +1,1 @@
-"""둘러방 backend."""
+"""Offline administration commands for the Spring Boot backend."""

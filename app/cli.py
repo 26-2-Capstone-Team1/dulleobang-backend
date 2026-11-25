@@ -1,120 +1,100 @@
-"""Offline administration; listing_agent privileges are never accepted from signup."""
+"""Fetch an IKEA release from GCS and import it through the backend's local admin mode."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import sqlite3
-import time
+import os
+import re
+import subprocess
+import tempfile
+from pathlib import Path
 
-from .core import Database, Settings, bump, worker_token
+ARTICLE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,31}")
+ITEM_FILES = ("meta.json", "model.glb", "collision.glb", "photo.jpg")
 
 
-def main():
+def articles(index: object) -> list[str]:
+    if isinstance(index, dict):
+        index = index.get("items", index.get("articles"))
+    if not isinstance(index, list):
+        raise ValueError("index.json must contain a list of articles (items or articles)")
+    result: list[str] = []
+    seen: set[str] = set()
+    for entry in index:
+        article = entry.get("article") if isinstance(entry, dict) else entry
+        if not isinstance(article, str) or not ARTICLE.fullmatch(article):
+            raise ValueError("index.json contains an invalid article identifier")
+        if article in seen:
+            raise ValueError(f"index.json contains duplicate article {article}")
+        result.append(article)
+        seen.add(article)
+    return result
+
+
+def download_catalog(bucket, prefix: str, directory: Path) -> None:
+    prefix = prefix.strip("/")
+    base = f"{prefix}/" if prefix else ""
+    index = json.loads(bucket.blob(f"{base}index.json").download_as_bytes(timeout=60))
+    for article in articles(index):
+        target = directory / article
+        target.mkdir()
+        for filename in ITEM_FILES:
+            blob = bucket.blob(f"{base}{article}/{filename}")
+            blob.download_to_filename(str(target / filename), timeout=120)
+
+
+def backend_jar(value: Path | None) -> Path:
+    if value is None:
+        libs = Path(__file__).resolve().parent.parent / "build" / "libs"
+        matches = [p for p in libs.glob("dulleobang-backend*.jar") if not p.name.endswith("-plain.jar")]
+        if len(matches) != 1:
+            raise ValueError("Build a bootJar first or specify --jar / DULLEOBANG_JAR")
+        value = matches[0]
+    if not value.is_file():
+        raise ValueError(f"Backend JAR not found: {value}")
+    return value.resolve()
+
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="둘러방 백엔드 관리 도구")
-    sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("init", help="Initialize persistent storage")
-    listing_agent = sub.add_parser(
-        "grant-listing-agent", help="Grant verified account listing_agent role (offline only)"
-    )
-    listing_agent.add_argument("email")
-    agent_review = sub.add_parser(
-        "review-agent", help="Review a verified identity application (trusted operator only)"
-    )
-    agent_review.add_argument("application_id")
-    agent_review.add_argument("--decision", choices=("approve", "reject"), required=True)
-    agent_review.add_argument("--reason")
-    report_review = sub.add_parser("review-report", help="Resolve or dismiss a listing report")
-    report_review.add_argument("report_id")
-    report_review.add_argument("--decision", choices=("resolve", "dismiss"), required=True)
-    report_review.add_argument("--reason", required=True)
-    sub.add_parser(
-        "pending-reviews",
-        help="List pending verification applications and open reports (private local output)",
-    )
-    token = sub.add_parser("worker-token", help="Issue a scoped short-lived AI worker token")
-    token.add_argument("worker_id")
-    token.add_argument("--seconds", type=int, default=3600)
-    queue = sub.add_parser("queue", help="Read due local queue job IDs")
-    queue.add_argument("--limit", type=int, default=20)
-    sub.add_parser("maintenance", help="Run outbox, timeouts and cleanup once")
-    backup = sub.add_parser(
-        "backup", help="Online consistent SQLite backup; also back up objects and secrets"
-    )
-    backup.add_argument("destination")
+    commands = parser.add_subparsers(dest="command", required=True)
+    catalog = commands.add_parser("import-catalog", help="Import IKEA items from a GCS release")
+    catalog.add_argument("--bucket", required=True)
+    catalog.add_argument("--prefix", required=True)
+    catalog.add_argument("--jar", type=Path, default=os.environ.get("DULLEOBANG_JAR"))
     args = parser.parse_args()
-    settings = Settings()
-    settings.prepare()
-    database = Database(settings)
-    if args.command == "worker-token":
-        if not 1 <= args.seconds <= 86400:
-            parser.error("seconds must be 1..86400")
-        print(worker_token(settings, args.worker_id, args.seconds))
-    elif args.command == "grant-listing-agent":
-        with database.transaction() as store:
-            row = store.conn.execute(
-                "SELECT user_id FROM credentials WHERE email=?", (args.email.lower().strip(),)
-            ).fetchone()
-            if not row:
-                parser.error("Account not found. Sign up first.")
-            user = store.get("user", row[0])["value"]
-            if "LISTING_AGENT" not in user["roles"]:
-                user["roles"].append("LISTING_AGENT")
-                bump(user)
-                store.put("user", row[0], user, row[0])
-            print(json.dumps(user, ensure_ascii=False))
-    elif args.command in ("review-agent", "review-report", "pending-reviews"):
-        from .admin import review_agent, review_report
-        from .core import Problem
 
-        try:
-            with database.transaction() as store:
-                if args.command == "review-agent":
-                    result = review_agent(store, args.application_id, args.decision, args.reason)
-                elif args.command == "review-report":
-                    result = review_report(store, args.report_id, args.decision, args.reason)
-                else:
-                    result = {
-                        "applications": [
-                            v for v in store.all("agentapplication") if v["status"] == "PENDING"
-                        ],
-                        "reports": [v for v in store.all("report") if v["status"] == "OPEN"],
-                    }
-            print(json.dumps(result, ensure_ascii=False))
-        except Problem as exc:
-            parser.error(exc.code + ": " + exc.detail)
-    elif args.command == "queue":
-        if not 1 <= args.limit <= 100:
-            parser.error("limit must be 1..100")
-        with database.connect() as conn:
-            print(
-                json.dumps(
-                    [
-                        r[0]
-                        for r in conn.execute(
-                            "SELECT job_id FROM queue WHERE available_at<=? ORDER BY available_at,job_id LIMIT ?",
-                            (time.time(), args.limit),
-                        )
-                    ]
-                )
+    try:
+        jar = backend_jar(args.jar)
+    except ValueError as exc:
+        parser.error(str(exc))
+    try:
+        from google.api_core.exceptions import GoogleAPIError
+        from google.auth.exceptions import GoogleAuthError
+        from google.cloud import storage
+    except ImportError:
+        parser.error("Install app/requirements.txt in the catalog CLI environment")
+
+    java_home = os.environ.get("JAVA_HOME")
+    java = str(Path(java_home) / "bin" / "java") if java_home else "java"
+    try:
+        with tempfile.TemporaryDirectory(prefix="dulleobang-catalog-") as temp:
+            directory = Path(temp)
+            download_catalog(storage.Client().bucket(args.bucket), args.prefix, directory)
+            subprocess.run(
+                [
+                    java, "-jar", str(jar),
+                    "--dulleobang.admin.command=import-catalog",
+                    f"--dulleobang.admin.catalog-directory={directory}",
+                    "--dulleobang.scheduler.enabled=false",
+                ],
+                check=True,
             )
-    elif args.command == "maintenance":
-        from .core import Contract
-        from .service import Service
-
-        with database.transaction() as store:
-            Service(store, settings, Contract()).maintenance()
-        print("Maintenance completed.")
-    elif args.command == "backup":
-        source, destination = database.connect(), sqlite3.connect(args.destination)
-        try:
-            source.backup(destination)
-        finally:
-            source.close()
-            destination.close()
-        print("Database backed up. Copy objects and secret configuration securely as well.")
-    else:
-        print("Storage initialized: " + str(database.path))
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(exc.returncode) from None
+    except (GoogleAuthError, GoogleAPIError, OSError, ValueError) as exc:
+        parser.exit(1, f"import-catalog: {exc}\n")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,3 @@
+src/main/resources/contract/v1/openapi.json -text
+gradlew text eol=lf
+*.sh text eol=lf
